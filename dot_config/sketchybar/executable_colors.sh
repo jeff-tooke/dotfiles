@@ -1,0 +1,69 @@
+#!/bin/bash
+
+### Catppuccin
+
+# Latte
+export LATTE_ROSEWATER=0xffdc8a78
+export LATTE_FLAMINGO=0xffdd7878
+export LATTE_PINK=0xffea76cb
+export LATTE_MAUVE=0xff8839ef
+export LATTE_RED=0xffd20f39
+export LATTE_MAROON=0xffe64553
+export LATTE_PEACH=0xfffe640b
+export LATTE_YELLOW=0xffdf8e1d
+export LATTE_GREEN=0xff40a02b
+export LATTE_TEAL=0xff179299
+export LATTE_SKY=0xff04a5e5
+export LATTE_SAPPHIRE=0xff209fb5
+export LATTE_BLUE=0xff1e66f5
+export LATTE_LAVENDER=0xff7287fd
+export LATTE_TEXT=0xff4c4f69
+export LATTE_SUBTEXT1=0xff5c5f77
+export LATTE_SUBTEXT0=0xff6c6f85
+export LATTE_OVERLAY2=0xff7c7f93
+export LATTE_OVERLAY1=0xff8c8fa1
+export LATTE_OVERLAY0=0xff9ca0b0
+export LATTE_SURFACE2=0xffacb0be
+export LATTE_SURFACE1=0xffbcc0cc
+export LATTE_SURFACE0=0xffccd0da
+export LATTE_BASE=0xffeff1f5
+export LATTE_MANTLE=0xffe6e9ef
+export LATTE_CRUST=0xffdce0e8
+
+# Macchiato
+export MACCHIATO_ROSEWATER=0xfff4dbd6
+export MACCHIATO_FLAMINGO=0xfff0c6c6
+export MACCHIATO_PINK=0xfff5bde6
+export MACCHIATO_MAUVE=0xffc6a0f6
+export MACCHIATO_RED=0xffed8796
+export MACCHIATO_MAROON=0xffee99a0
+export MACCHIATO_PEACH=0xfff5a97f
+export MACCHIATO_YELLOW=0xffeed49f
+export MACCHIATO_GREEN=0xffa6da95
+export MACCHIATO_TEAL=0xff8bd5ca
+export MACCHIATO_SKY=0xff91d7e3
+export MACCHIATO_SAPPHIRE=0xff7dc4e4
+export MACCHIATO_BLUE=0xff8aadf4
+export MACCHIATO_LAVENDER=0xffb7bdf8
+export MACCHIATO_TEXT=0xffcad3f5
+export MACCHIATO_SUBTEXT1=0xffb8c0e0
+export MACCHIATO_SUBTEXT0=0xffa5adcb
+export MACCHIATO_OVERLAY2=0xff939ab7
+export MACCHIATO_OVERLAY1=0xff8087a2
+export MACCHIATO_OVERLAY0=0xff6e738d
+export MACCHIATO_SURFACE2=0xff5b6078
+export MACCHIATO_SURFACE1=0xff494d64
+export MACCHIATO_SURFACE0=0xff363a4f
+export MACCHIATO_BASE=0xff24273a
+export MACCHIATO_MANTLE=0xff1e2030
+export MACCHIATO_CRUST=0xff181926
+
+# General bar colors
+export BAR_COLOR=$MACCHIATO_SURFACE0 #$GREY # Grey bar
+export ICON_COLOR=$LATTE_CRUST # Color of all icons
+export LABEL_COLOR=$LATTE_CRUST # Color of all labels
+export TRANSPARENT=0x00000000
+#export BAR_BORDER_COLOR=$MACCHIATO_SURFACE0
+#export BACKGROUND_1=$MACCHIATO_PEACH
+#export BACKGROUND_2=$MACCHIATO_PEACH
+

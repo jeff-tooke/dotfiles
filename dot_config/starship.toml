@@ -1,0 +1,119 @@
+# General
+add_newline = false
+format = "$all"
+#right_format = "$kubernetes"
+#right_format = "$aws"
+#right_format = "$docker_context"
+#right_format = "$kubernetes$aws"
+#right_format = "$kubernetes$docker_context"
+#right_format = "$aws$docker_context"
+#right_format = "$kubernetes$aws$docker_context"
+
+# Color Palette
+palette = "catppuccin_macchiato"
+
+[palettes.catppuccin_macchiato]
+rosewater = "#f4dbd6"
+flamingo = "#f0c6c6"
+pink = "#f5bde6"
+mauve = "#c6a0f6"
+red = "#ed8796"
+maroon = "#ee99a0"
+peach = "#f5a97f"
+yellow = "#eed49f"
+green = "#a6da95"
+teal = "#8bd5ca"
+sky = "#91d7e3"
+sapphire = "#7dc4e4"
+blue = "#8aadf4"
+lavender = "#b7bdf8"
+text = "#cad3f5"
+subtext1 = "#b8c0e0"
+subtext0 = "#a5adcb"
+overlay2 = "#939ab7"
+overlay1 = "#8087a2"
+overlay0 = "#6e738d"
+surface2 = "#5b6078"
+surface1 = "#494d64"
+surface0 = "#363a4f"
+base = "#24273a"
+mantle = "#1e2030"
+crust = "#181926"
+
+# Modules
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+vicmd_symbol = "[❮](bold purple)"
+
+[directory]
+style = "blue"
+format = "[$path]($style) "
+
+[git_branch]
+symbol = " "
+style = "mauve"
+format = "[$symbol$branch]($style) "
+
+[git_status]
+style = "overlay0"
+format = "([$all_status]($style)) "
+
+[username]
+style_user = "yellow"
+format = "[$user]($style) "
+show_always = false
+
+[hostname]
+ssh_only = true
+style = "green"
+format = "on [$hostname]($style) "
+
+#[kubernetes]
+#symbol = "☸️ "
+#style = "blue"
+#format = "[$symbol$context ($namespace)]($style) "
+#disabled = false
+
+#[aws]
+#symbol = " "
+#style = "peach"
+#format = "[$symbol($profile)@$region($duration)]($style) "
+#force_display = true
+
+#[aws.region_aliases]
+#us-east-1 = "use1"
+#us-west-2 = "usw2"
+
+#[aws.profile_aliases]
+#default = "def"
+
+#[docker_context]
+#symbol = "🐳 "
+#style = "sky"
+#format = "[$symbol$context]($style) "
+#only_with_files = false
+#detect_files = []
+#disabled = false
+
+[python]
+symbol = " "
+style = "yellow"
+format = "[$symbol$virtualenv]($style) "
+python_binary = "python3"
+
+[cmd_duration]
+min_time = 300000
+disabled = false
+format = "took [$duration]($style)"
+style = "yellow"
+
+[line_break]
+disabled = true
+#disabled = false
+
+[status]
+style = "red"
+symbol = "✖"
+format = "[$symbol $status]($style) "
+disabled = false

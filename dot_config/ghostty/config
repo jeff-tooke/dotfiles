@@ -1,0 +1,10 @@
+background-opacity=0.75
+background-blur=25
+theme = catppuccin-macchiato
+font-family = "MesloLGS Nerd Font"
+font-size=18
+cursor-style-blink=false
+cursor-style=block
+confirm-close-surface=false
+quit-after-last-window-closed=true
+macos-titlebar-style=hidden

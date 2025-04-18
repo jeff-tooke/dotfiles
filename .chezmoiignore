@@ -1,0 +1,13 @@
+# Exclude readme, setup folder and its contents
+setup/**
+README.md
+
+# Exclude anything backup related
+**/*backup*
+
+# Exclude log files 
+**/*.log
+
+# Exclude themes folders fom app configs
+**/themes/
+**/themes/**

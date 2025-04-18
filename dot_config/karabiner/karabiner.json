@@ -1,0 +1,135 @@
+{
+  "global": {
+    "ask_for_confirmation_before_quitting": false,
+    "check_for_updates_on_startup": false,
+    "show_in_menu_bar": false,
+    "show_profile_name_in_menu_bar": false
+  },
+  "profiles": [
+    {
+      "name": "External ANSI",
+      "selected": true,
+      "simple_modifications": [],
+      "complex_modifications": {
+        "rules": [
+          {
+            "description": "Caps Lock to Escape (alone) or Left Control (held)",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "caps_lock",
+                  "modifiers": {
+                    "optional": ["any"]
+                  }
+                },
+                "to": [
+                  {
+                    "key_code": "left_control"
+                  }
+                ],
+                "to_if_alone": [
+                  {
+                    "key_code": "escape"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "Swap left_command and left_option on RDR SK75",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": { "key_code": "left_command" },
+                "to": [ { "key_code": "left_option" } ],
+                "conditions": [
+                  {
+                    "type": "device_if",
+                    "identifiers": [
+                      {
+                        "vendor_id": 12815,
+                        "product_id": 20565
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "basic",
+                "from": { "key_code": "left_option" },
+                "to": [ { "key_code": "left_command" } ],
+                "conditions": [
+                  {
+                    "type": "device_if",
+                    "identifiers": [
+                      {
+                        "vendor_id": 12815,
+                        "product_id": 20565
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "devices": [],
+      "parameters": {
+        "delay_milliseconds_before_open_device": 1000
+      },
+      "fn_function_keys": [],
+      "virtual_hid_keyboard": {
+        "country_code": 0,
+        "keyboard_type_v2": "ansi",
+        "indicate_sticky_modifier_keys_state": true,
+        "mouse_key_xy_scale": 100
+      }
+    },
+    {
+      "name": "Internal ISO",
+      "selected": false,
+      "simple_modifications": [],
+      "complex_modifications": {
+        "rules": [
+          {
+            "description": "Caps Lock to Escape (alone) or Left Control (held)",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "caps_lock",
+                  "modifiers": {
+                    "optional": ["any"]
+                  }
+                },
+                "to": [
+                  {
+                    "key_code": "left_control"
+                  }
+                ],
+                "to_if_alone": [
+                  {
+                    "key_code": "escape"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "devices": [],
+      "parameters": {
+        "delay_milliseconds_before_open_device": 1000
+      },
+      "fn_function_keys": [],
+      "virtual_hid_keyboard": {
+        "country_code": 0,
+        "keyboard_type_v2": "iso",
+        "indicate_sticky_modifier_keys_state": true,
+        "mouse_key_xy_scale": 100
+      }
+    }
+  ]
+}
