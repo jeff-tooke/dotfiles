@@ -15,3 +15,15 @@ Icon
 ### Direnv ###
 .envrc
 .env
+
+# ───────────────
+# Nix / Nix Flakes
+# ───────────────
+result
+result-*
+.gcroots/
+.direnv/
+.envrc
+*.drv
+*.gcno
+*.gcda
