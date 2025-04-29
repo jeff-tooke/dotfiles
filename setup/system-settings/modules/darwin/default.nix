@@ -1,4 +1,7 @@
 { config, pkgs, ... }: {
+  
+  security.pam.services.sudo_local.touchIdAuth =true;
+
   system.defaults = {
       NSGlobalDomain = {
         AppleICUForce24HourTime = true;
@@ -18,7 +21,6 @@
         NSDocumentSaveNewDocumentsToCloud = false;
         NSWindowShouldDragOnGesture = true;
         _HIHideMenuBar = true;
-        "com.apple.trackpad.trackpadCornerClickBehavior" = 1;
         "com.apple.sound.beep.feedback" = 0;
         "com.apple.sound.beep.volume" = 0.00;
       };
@@ -56,6 +58,8 @@
       trackpad = {
         Clicking = true;
         TrackpadRightClick = true;
+	TrackpadThreeFingerDrag = true;
+      	Dragging = true;
       };
   };
 
