@@ -54,6 +54,10 @@
       loginwindow = {
         DisableConsoleAccess = true;
         GuestEnabled = false;
+        RestartDisabled = true;
+        SHOWFULLNAME = true;
+        ShutDownDisabled = true;
+        SleepDisabled = true;
       };
       trackpad = {
         Clicking = true;
