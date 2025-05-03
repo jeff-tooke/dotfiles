@@ -41,6 +41,15 @@ if [ -n "$TMUX" ]; then
     fd "$search_term" --type f "$search_dir" | fzf --preview 'bat --style=numbers --color=always {} | less -R' --preview-window=right:50%
   }
 
+  y() {
+	  local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
+	  yazi "$@" --cwd-file="$tmp"
+	  if cwd="$(command cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
+		  builtin cd -- "$cwd"
+	  fi
+	  rm -f -- "$tmp"
+  }
+
   # ---- Zoxide ----
   eval "$(zoxide init zsh --cmd cd)"
 
