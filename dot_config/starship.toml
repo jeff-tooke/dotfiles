@@ -106,10 +106,7 @@ format = "[$symbol$virtualenv]($style) "
 python_binary = "python3"
 
 [cmd_duration]
-min_time = 300000
-disabled = false
-format = "took [$duration]($style)"
-style = "yellow"
+disabled = true
 
 [line_break]
 disabled = true
