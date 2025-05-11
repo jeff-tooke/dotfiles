@@ -4,30 +4,29 @@ return {
     "WhoIsSethDaniel/mason-tool-installer.nvim",
   },
   config = function()
+    local mason = require "mason"
+    local mason_tool_installer = require "mason-tool-installer"
 
-    local mason = require("mason")
-    local mason_tool_installer = require("mason-tool-installer")
-
-  mason.setup({
+    mason.setup {
       ui = {
         icons = {
           package_installed = "✓",
           package_pending = "➜",
-          package_uninstalled = "✗",       
+          package_uninstalled = "✗",
+        },
       },
-    },
-  })
+    }
 
-  mason_tool_installer.setup({
+    mason_tool_installer.setup {
       ensure_installed = {
         "prettier",
         "stylua",
         "isort",
         "black",
-        "ansible_lint",
-        "terraform_fmt",
+        "ansible-lint",
+        "terraform",
         "shellcheck",
       },
-    })
+    }
   end,
 }

@@ -2,7 +2,7 @@
 tap "felixkratz/formulae"
 tap "nikitabobko/tap"
 
-# Core 
+# Core
 brew "bat"
 brew "bat-extras"
 brew "btop"
@@ -22,6 +22,7 @@ brew "jq"
 brew "kubernetes-cli"
 brew "lazygit"
 brew "neovim"
+brew "node"
 brew "poppler"
 brew "pre-commit"
 brew "resvg"
@@ -45,7 +46,7 @@ cask "aerospace@0.17.1"
 cask "chatgpt"
 cask "ghostty"
 cask "raycast"
-cask "zen-browser"
+cask "zen"
 
 # Fonts
 cask "font-meslo-lg-nerd-font"
