@@ -1,32 +1,48 @@
 return {
-  "williamboman/mason.nvim",
-  dependencies = {
-    "WhoIsSethDaniel/mason-tool-installer.nvim",
-  },
-  config = function()
-    local mason = require "mason"
-    local mason_tool_installer = require "mason-tool-installer"
+	"williamboman/mason.nvim",
+	dependencies = {
+		"williamboman/mason-lspconfig.nvim",
+		"WhoIsSethDaniel/mason-tool-installer.nvim",
+	},
+	config = function()
+		local mason = require("mason")
+		local mason_lspconfig = require("mason-lspconfig")
+		local mason_tool_installer = require("mason-tool-installer")
 
-    mason.setup {
-      ui = {
-        icons = {
-          package_installed = "✓",
-          package_pending = "➜",
-          package_uninstalled = "✗",
-        },
-      },
-    }
+		mason.setup({
+			ui = {
+				icons = {
+					package_installed = "✓",
+					package_pending = "➜",
+					package_uninstalled = "✗",
+				},
+			},
+		})
 
-    mason_tool_installer.setup {
-      ensure_installed = {
-        "prettier",
-        "stylua",
-        "isort",
-        "black",
-        "ansible-lint",
-        "terraform",
-        "shellcheck",
-      },
-    }
-  end,
+		mason_lspconfig.setup({
+			ensure_installed = {
+				"ansiblels",
+				"bashls",
+				"dockerls",
+				"jsonls",
+				"lua_ls",
+				"marksman",
+				"pyright",
+				"terraformls",
+				"yamlls",
+			},
+		})
+
+		mason_tool_installer.setup({
+			ensure_installed = {
+				"prettier",
+				"stylua",
+				"isort",
+				"black",
+				"ansible-lint",
+				"terraform",
+				"shellcheck",
+			},
+		})
+	end,
 }
