@@ -1,7 +1,16 @@
 #!/bin/bash
 
-sketchybar --add item clock right \
-           --set clock script="$PLUGIN_DIR/clock.sh" \
-                        update_freq=60 \
-                        label.color=$LABEL_COLOR \
-			background.color=$TRANSPARENT
+calendar=(
+  icon=cal
+  icon.font="$FONT:Black:12.0"
+  icon.padding_right=0
+  label_width=45
+  label_align=right
+  padding_left=15
+  update_freq=30
+  script="$PLUGIN_DIR/calendar.sh"
+)
+
+sketchybar --add item calendar right \
+           --set calendar "${calendar[@]}" \
+           --subscribe calendar
