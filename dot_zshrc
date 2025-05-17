@@ -7,7 +7,7 @@ autoload -Uz compinit
 compinit -i
 
 # ---- Auto-launch tmux silently if not already inside ----
-if [[ -z "$TMUX" && "$TERM_PROGRAM" != "vscode" ]]; then
+if [[ -z "$TMUX" && -z "$NVIM" ]]; then
   exec tmux new-session -A -s main >/dev/null 2>&1
 fi
 
