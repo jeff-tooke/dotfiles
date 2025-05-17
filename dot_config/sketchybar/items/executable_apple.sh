@@ -4,6 +4,13 @@ POPUP_OFF='sketchybar --set apple.logo popup.drawing=off'
 POPUP_CLICK_SCRIPT='sketchybar --set $NAME popup.drawing=toggle'
 
 apple_logo=(
+  icon.background.color=0xff9e1100
+  icon.background.corner_radius=6
+  icon.background.border_color=$WHITE
+  icon.background.border_width=1
+  icon.background.height=22
+  icon.padding_left=5
+  icon.padding_right=5
   icon=$APPLE
   icon.font="$FONT:Bold:16.0"
   icon.color=$ICON_COLOR
@@ -50,4 +57,4 @@ sketchybar --add item apple.logo left                  \
            --set apple.sleep "${apple_sleep[@]}"       \
                                                        \
            --add item apple.activity popup.apple.logo  \
-           --set apple.activity "${apple_activity[@]}" 
+           --set apple.activity "${apple_activity[@]}"
