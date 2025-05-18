@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # Set your location and coordinates
-LOCATION="Bournemouth"
-LAT="50.7208"
-LON="-1.9048"
+LOCATION=$(corelocationcli --format %locality)
+LAT=$(corelocationcli --format %latitude)
+LON=$(corelocationcli --format %longtitude)
 
 # Get weather data: Location + Condition + Temp
-WEATHER_INFO=$(curl -s "https://wttr.in/${LOCATION}?format=%l:+%C+%t")
+WEATHER_INFO=$(curl -s "https://wttr.in/${LOCATION}?format=%l:+%c+%t")
 
 # Extract parts
 LOCATION_NAME=$(echo "$WEATHER_INFO" | cut -d: -f1)
@@ -93,7 +93,8 @@ else
 fi
 
 # Build label
-LABEL="$LOCATION_NAME: $TEMP $ICON $CONDITION"
+LABEL="$LOCATION_NAME: $TEMP $CONDITION"
+#LABEL="$LOCATION_NAME: $TEMP $ICON $CONDITION"
 
 # Update the item
 sketchybar --set $NAME label="$LABEL"
