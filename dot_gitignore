@@ -27,3 +27,7 @@ result-*
 *.drv
 *.gcno
 *.gcda
+
+/private/*
+!/.gitmodules
+!/private
