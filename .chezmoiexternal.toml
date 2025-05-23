@@ -1,0 +1,3 @@
+[".gitconfig"]
+  tpye = "file"
+  source = "private/dot_gitconfig"
