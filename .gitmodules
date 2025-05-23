@@ -1,4 +1,4 @@
 [submodule "private"]
 	path = private
 	url = git@github.com:jeff-tooke/dotfiles-private.git
-	branch = main
+  ignore = all
