@@ -4,7 +4,4 @@ sourceDir = "{{ .chezmoi.homeDir }}/.dotfiles"
 [data]
 hostname = "{{ .chezmoi.hostname }}"
 
-work_email = "{{ (onepasswordDetailsFields "qllmussk6lf2xuqzx35auu6gfe").username.value }}"
-personal_email = "{{ onepasswordRead "op://Personal/Github/email" }}"
-
 wifi_ssid = "{{ (onepasswordDetailsFields "wcajdpagrzdqterfeqjxmpat4u").username.value }}"
