@@ -38,7 +38,7 @@ git clone https://github.com/$GITHUB_USERNAME/dotfiles.git ~/.dotfiles
 
 # Apply system default settings
 cd ~/.dotfiles/setup/system-settings
-nix run nix-darwin -- switch --flake .
+sudo nix run nix-darwin -- switch --flake .
 
 # Install gui apps with homebrew
 cd ~/.dotfiles/setup/package-management
