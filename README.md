@@ -18,22 +18,18 @@ echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> /Users/$USER/.zprofile
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
 # Install nix-darwin - https://mynixos.com/nix-darwin
-
-```
 curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install macos
+
+. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 ```
 
 **NOTE** During installation be sure to install default nix by answering no when asked to install Determinate Nix.
-
-```
-. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
-```
 
 After installing dependencies for system configuration proceed to next steps
 
 ```bash
 # Ensure you are in home directory and clone dotfiles repo
-cd
+cd ~
 git clone --recurse-submodules https://github.com/$GITHUB_USERNAME/dotfiles.git ~/.dotfiles
 
 # NOTE: You should just use this if not utilising private git sub-module
@@ -43,12 +39,21 @@ git clone --recurse-submodules https://github.com/$GITHUB_USERNAME/dotfiles.git 
 cd ~/.dotfiles/setup/system-settings
 sudo nix run nix-darwin -- switch --flake .
 
-# Install gui apps with homebrew
+# Install default packages
 cd ~/.dotfiles/setup/package-management
 brew bundle
 
-# Apply dotfile configuration for apps
-cd
+# If installing machine-specific configuration or packages these can be found here:
+cd ~/.dotfiles/private
+
+# Switch to the desired submodule branch eg: personal
+git checkout personal
+
+# Install machine-specific packages
+brew bundle --file=setup/package-management/Brewfile
+
+# Apply dotfiles 
+cd ~
 chezmoi init --source ~/.dotfiles
 chezmoi apply --source ~/.dotfiles
 ```
