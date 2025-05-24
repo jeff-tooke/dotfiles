@@ -18,10 +18,16 @@ echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> /Users/$USER/.zprofile
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
 # Install nix-darwin - https://mynixos.com/nix-darwin
-curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+
+```
+curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install macos
+```
+
+**NOTE** During installation be sure to install default nix by answering no when asked to install Determinate Nix.
+
+```
 . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 ```
-**NOTE** During installation be sure to install default nix by answering no when asked to install Determinate Nix.
 
 After installing dependencies for system configuration proceed to next steps
 
