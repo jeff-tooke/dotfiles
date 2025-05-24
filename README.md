@@ -34,7 +34,10 @@ After installing dependencies for system configuration proceed to next steps
 ```bash
 # Ensure you are in home directory and clone dotfiles repo
 cd
-git clone https://github.com/$GITHUB_USERNAME/dotfiles.git ~/.dotfiles
+git clone --recurse-submodules https://github.com/$GITHUB_USERNAME/dotfiles.git ~/.dotfiles
+
+# NOTE: You should just use this if not utilising private git sub-module
+# git clone https://github.com/$GITHUB_USERNAME/dotfiles.git ~/.dotfiles
 
 # Apply system default settings
 cd ~/.dotfiles/setup/system-settings
@@ -51,8 +54,11 @@ chezmoi apply --source ~/.dotfiles
 ```
 
 ## Post-installation configuration
-Manually start aerospace from Applications and add to login start items
-Run the following to initialise some tools
+- Start aerospace from Applications and check it is added background login items.
+- Add Raycast and Hammerspoon to login items
+- Allow `corelocationcli` app to run in Privacy and Security settings
+- Enable Location Services in System settings and grant `corelocationcli` app access
+- Run the following to initialise some tools
 
 ```bash
 # Install catppuccin theme for bat
@@ -60,11 +66,8 @@ bat cache --build
 
 # Start borders service
 brew services start borders
-```
 
-Install tmux plugins by running
-
-```
+# Install tmux plugins
 /opt/homebrew/opt/tpm/share/tpm/bin/install_plugins
 ```
 
