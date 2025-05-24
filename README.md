@@ -62,6 +62,10 @@ bat cache --build
 brew services start borders
 ```
 
-From within tmux session, install plugins by pressing `C-a I`
+Install tmux plugins by running
+
+```
+/opt/homebrew/opt/tpm/share/tpm/bin/install_plugins
+```
 
 **TODO** - Script the above and write additional script to perform managed updates
