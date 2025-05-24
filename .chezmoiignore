@@ -8,9 +8,5 @@ README.md
 # Exclude log files
 **/*.log
 
-# Exclude themes folders fom app configs
-**/themes/
-**/themes/**
-
 # Exclude private submodule
 /private
