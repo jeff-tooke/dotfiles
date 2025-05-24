@@ -1,1 +1,1 @@
-private/dot_hammerspoon/config/core/constants.lua
+/Users/jeff/.dotfiles//private/dot_hammerspoon/config/core/constants.lua
