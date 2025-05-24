@@ -37,5 +37,5 @@ alias nv='/opt/homebrew/bin/nvim'
 alias pf='btop'
 alias rm=trash
 alias sf='defaults write com.apple.finder AppleShowAllFiles YES; killall Finder /System/Library/CoreServices/Finder.app'
-alias stat='fastfetch'
+alias sys='fastfetch'
 alias vim='/opt/homebrew/bin/nvim'
