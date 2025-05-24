@@ -1,0 +1,1 @@
+private/dot_hammerspoon/config/core/constants.lua
