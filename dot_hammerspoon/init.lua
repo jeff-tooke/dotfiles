@@ -1,4 +1,4 @@
-hs.allowScript(true)
+hs.allowAppleScript(true)
 
 require("config.modules.settings")
 
