@@ -105,6 +105,9 @@ style = "yellow"
 format = "[$symbol$virtualenv]($style) "
 python_binary = "python3"
 
+[terraform]
+format = "[$symbol]($style)"
+
 [cmd_duration]
 disabled = true
 
