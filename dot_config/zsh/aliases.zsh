@@ -6,6 +6,7 @@ alias .....='cd ../../../../'
 alias c=clear
 alias cat='/opt/homebrew/bin/bat'
 alias docker='podman'
+alias docker-compose='podman-compose'
 alias e='/opt/homebrew/bin/nvim'
 alias gac='git add -A && git commit -m'
 alias gb='git branch'
