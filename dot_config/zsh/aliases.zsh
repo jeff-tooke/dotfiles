@@ -39,4 +39,5 @@ alias pf='btop'
 alias rm=trash
 alias sf='defaults write com.apple.finder AppleShowAllFiles YES; killall Finder /System/Library/CoreServices/Finder.app'
 alias sys='fastfetch'
+alias tf='terraform'
 alias vim='/opt/homebrew/bin/nvim'
