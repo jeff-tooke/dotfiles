@@ -24,6 +24,7 @@ end, opts)
 -- Custom stuff
 keymap.set("n", "<leader>nh", ":nohl<CR>", { desc = "Clear search highlights" })
 keymap.set("t", "<ESC>", [[<C-\><C-n>]], { desc = "Exit out of terminal mode" })
+keymap.set("n", "<leader>w", ":w<CR>", { noremap = true, silent = true, desc = "Save buffer" })
 keymap.set("n", "<leader>q", ":wqa<CR>", { noremap = true, silent = true, desc = "Save and exit all buffers" })
 keymap.set("n", "<leader>x", ":qa!<CR>", { noremap = true, silent = true, desc = "Force quit all!" })
 
