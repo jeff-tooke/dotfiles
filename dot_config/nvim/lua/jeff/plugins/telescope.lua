@@ -16,6 +16,7 @@ return {
 			previewer = false,
 			winblend = 10,
 			width = 0.8,
+			hidden = true,
 		})
 
 		-- Custom dropdown with previewer for live_grep
@@ -23,10 +24,12 @@ return {
 			previewer = true,
 			winblend = 10,
 			width = 0.8,
+			hidden = true,
 		})
 		telescope.setup({
 			defaults = {
 				path_display = { "relative" },
+				file_ignore_patterns = { "/.git/" },
 				mappings = {
 					i = {
 						["<C-k>"] = actions.move_selection_previous,
