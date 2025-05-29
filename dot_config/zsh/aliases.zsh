@@ -19,6 +19,7 @@ alias gds='git diff -w --staged'
 alias gg='lazygit'
 alias gla=pretty_git_log_all
 alias grep='/opt/homebrew/bin/rg'
+alias gst='git rev-parse --git-dir > /dev/null 2>&1 && git status || eza'
 alias hf='defaults write com.apple.finder AppleShowAllFiles NO; killall Finder /System/Library/CoreServices/Finder.app'
 alias h='my_history'
 alias hs='my_history | grep'
