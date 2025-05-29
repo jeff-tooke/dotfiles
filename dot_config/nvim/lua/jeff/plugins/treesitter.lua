@@ -3,10 +3,10 @@ return {
   event = { "BufReadPre", "BufNewfile" },
   build = ":TSUpdate",
   config = function()
-    local treesitter = require("nvim-treesitter.configs")
+    local treesitter = require "nvim-treesitter.configs"
 
     -- configure treesitter
-    treesitter.setup({
+    treesitter.setup {
       highlight = {
         enable = true,
       },
@@ -25,6 +25,7 @@ return {
         "markdown",
         "nix",
         "python",
+        "regex",
         "terraform",
         "toml",
         "yaml",
@@ -38,12 +39,12 @@ return {
           node_decremental = "<bs>",
         },
       },
-    })
+    }
 
-      -- set helm and chezmoi templates as gotmpl filetype
-      vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
-          pattern = { "*.tpl", "*tmpl" },
-          command = "set filetype=gotmpl",
-        })
+    -- set helm and chezmoi templates as gotmpl filetype
+    vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
+      pattern = { "*.tpl", "*tmpl" },
+      command = "set filetype=gotmpl",
+    })
   end,
 }
