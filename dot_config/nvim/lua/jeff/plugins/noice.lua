@@ -8,20 +8,41 @@ return {
 	config = function()
 		require("noice").setup({
 			lsp = {
-				-- override markdown rendering so that **cmp** and other plugins use **Treesitter**
 				override = {
 					["vim.lsp.util.convert_input_to_markdown_lines"] = true,
 					["vim.lsp.util.stylize_markdown"] = true,
-					["cmp.entry.get_documentation"] = true, -- requires hrsh7th/nvim-cmp
+					["cmp.entry.get_documentation"] = true,
 				},
 			},
-			-- you can enable a preset for easier configuration
 			presets = {
-				bottom_search = true, -- use a classic bottom cmdline for search
-				command_palette = true, -- position the cmdline and popupmenu together
-				long_message_to_split = true, -- long messages will be sent to a split
-				inc_rename = false, -- enables an input dialog for inc-rename.nvim
-				lsp_doc_border = false, -- add a border to hover docs and signature help
+				bottom_search = true,
+				command_palette = false, -- <== turn this off
+				long_message_to_split = true,
+				inc_rename = false,
+				lsp_doc_border = false,
+			},
+			views = {
+				cmdline_popup = {
+					position = {
+						row = "35%",
+						col = "50%",
+					},
+					size = {
+						width = 60,
+						height = "auto",
+					},
+				},
+				cmdline_popupmenu = {
+					position = {
+						row = "45%",
+						col = "50%",
+					},
+					size = {
+						width = 60,
+						height = "auto",
+						max_height = 15,
+					},
+				},
 			},
 		})
 	end,
