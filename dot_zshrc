@@ -19,7 +19,10 @@ if [ -n "$TMUX" ]; then
   export HOMEBREW_NO_ENV_HINTS=1
   eval "$(direnv hook zsh)"
 
-  # ---- Source plugins and theme ----
+# ---- Update $PATH with useful locations ----
+  export PATH="$PATH:/usr/sbin:/sbin"
+
+# ---- Source plugins and theme ----
   source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
   source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
