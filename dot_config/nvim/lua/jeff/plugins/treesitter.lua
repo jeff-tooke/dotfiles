@@ -23,7 +23,6 @@ return {
         "lua",
         "make",
         "markdown",
-        "nix",
         "python",
         "regex",
         "terraform",
