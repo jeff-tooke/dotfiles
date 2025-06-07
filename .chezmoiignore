@@ -10,3 +10,7 @@ README.md
 
 # Exclude private submodule
 /private
+
+# Exclude encryption keys and config
+.sops.yaml
+.config/sops/age/keys.txt

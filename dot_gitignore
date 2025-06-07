@@ -31,3 +31,8 @@ result-*
 /private/*
 !/.gitmodules
 !/private
+
+### Age and sops encryption
+.sops.yml
+keys.txt
+
