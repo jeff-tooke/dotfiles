@@ -498,7 +498,7 @@ return {
     {
       "<leader>gg",
       function()
-        Snacks.lazygit()
+        Snacks.lazygit { cwd = Snacks.git.get_root() }
       end,
       desc = "Lazygit",
     },
