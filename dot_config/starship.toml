@@ -1,6 +1,8 @@
 # General
 add_newline = false
 format = "$all"
+right_format = "$custom"
+# right_format = "$custom.aws_profile_clean"
 #right_format = "$kubernetes"
 #right_format = "$aws"
 #right_format = "$docker_context"
@@ -75,26 +77,87 @@ format = "on [$hostname]($style) "
 #format = "[$symbol$context ($namespace)]($style) "
 #disabled = false
 
-#[aws]
-#symbol = " "
-#style = "peach"
-#format = "[$symbol($profile)@$region($duration)]($style) "
-#force_display = true
+# [custom."aws_profile_clean"]
+# description = "Custom AWS Prompt"
+# command = '''
+# profile="${AWS_VAULT:-$AWS_PROFILE}"
+#
+# # Extract the middle environment part (between first "-" and first "/")
+# env=$(echo "$profile" | sed -E 's/^[^-]+-([^-]+-[^-]+)-\/.*/\1/')
+#
+# # Extract the user role from last segment before "-user"
+# user=$(echo "$profile" | sed -E 's/.*\/[^/]*-([^-]+)-user$/\1/')
+#
+# # Fallback if pattern doesn't match
+# if [ -z "$env" ] || [ -z "$user" ]; then
+#   echo "$profile"
+# else
+#   echo "${env}/${user}"
+# fi
+# '''
 
-#[aws.region_aliases]
-#us-east-1 = "use1"
-#us-west-2 = "usw2"
+# when = '''[ -n "${AWS_PROFILE:-$AWS_VAULT}" ]'''
+# format = '[$output]($style)'
+# style = "peach bold"
 
-#[aws.profile_aliases]
-#default = "def"
+[custom."aws_profile_clean"]
+command = '''
+profile="${AWS_VAULT:-$AWS_PROFILE}"
 
-#[docker_context]
-#symbol = "🐳 "
-#style = "sky"
-#format = "[$symbol$context]($style) "
-#only_with_files = false
-#detect_files = []
-#disabled = false
+# Exit if no profile is set
+[ -z "$profile" ] && exit 0
+
+# Extract env and user from profile name
+env=$(echo "$profile" | sed -E 's/^[^-]+-([^-]+-[^-]+)-\/.*/\1/')
+env="${env%-}"
+# user=$(echo "$profile" | sed -E 's/.*\/[^/]*-([^-]+)-user$/\1/')
+# Extract the last segment (e.g. "team-admin-user")
+last_segment=$(echo "$profile" | awk -F'/' '{print $NF}')
+
+# Remove prefix and trailing "-user" or "-user-xyz" variants
+user=$(echo "$last_segment" \
+  | sed -E 's/^[^-]+-//' \
+  | sed -E 's/-user$//')
+
+
+# Exit if parsing failed
+[ -z "$env" ] || [ -z "$user" ] && exit 0
+
+label="${env}/${user}"
+
+# Parse x_security_token_expires from credentials
+creds_file=~/.aws/credentials
+expires=$(awk -v p="[$profile]" '
+  $0 == p {found=1}
+  found && $1 == "x_security_token_expires" {print $3; exit}
+' "$creds_file" 2>/dev/null)
+
+if [ -n "$expires" ]; then
+  expires_clean=$(echo "$expires" | sed 's/+00:00/Z/')
+  expire_epoch=$(date -j -u -f "%Y-%m-%dT%H:%M:%SZ" "$expires_clean" +%s 2>/dev/null)
+  now_epoch=$(date +%s)
+  diff=$((expire_epoch - now_epoch))
+
+  if [ $diff -gt 0 ]; then
+    minutes=$((diff / 60))
+    time_left=$([ $minutes -gt 60 ] && echo "$((minutes / 60))h" || echo "${minutes}m")
+    echo "$label ⏳$time_left"
+  else
+    echo "$label ❌"
+  fi
+else
+  echo "$label"
+fi
+'''
+when = '''[ -n "${AWS_PROFILE:-$AWS_VAULT}" ]'''
+format = '[$output]($style)'
+style = "peach bold"
+
+[aws]
+disabled = true
+
+[package]
+disabled = true
 
 [lua]
 format = "[$symbol]($style)"

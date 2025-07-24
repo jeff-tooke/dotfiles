@@ -43,22 +43,28 @@ return {
             end,
           },
         },
+        -- lualine_c = {
+        --   function()
+        --     return "%="
+        --   end,
+        --   {
+        --     function()
+        --       local filepath = vim.fn.expand "%:."
+        --       local dir = vim.fn.fnamemodify(filepath, ":h")
+        --       return dir ~= "." and dir or ""
+        --     end,
+        --     color = function()
+        --       local theme = require "lualine.themes.catppuccin"
+        --       local mode = vim.fn.mode()
+        --       local fg = (theme[mode] and theme[mode].a.fg) or theme.normal.a.fg
+        --       return { fg = fg }
+        --     end,
+        --   },
+        -- },
         lualine_c = {
-          function()
-            return "%="
-          end,
           {
-            function()
-              local filepath = vim.fn.expand "%:."
-              local dir = vim.fn.fnamemodify(filepath, ":h")
-              return dir ~= "." and dir or ""
-            end,
-            color = function()
-              local theme = require "lualine.themes.catppuccin"
-              local mode = vim.fn.mode()
-              local fg = (theme[mode] and theme[mode].a.fg) or theme.normal.a.fg
-              return { fg = fg }
-            end,
+            "filename",
+            path = 1,
           },
         },
         lualine_x = {
