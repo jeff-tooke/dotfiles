@@ -29,6 +29,7 @@ keymap.set("n", "<leader>q", ":wqa<CR>", { noremap = true, silent = true, desc =
 keymap.set("n", "<leader>x", ":qa!<CR>", { noremap = true, silent = true, desc = "Force quit all!" })
 keymap.set("n", "<leader><left>", ":bp<CR>", { noremap = true, silent = true, desc = "Previous buffer" })
 keymap.set("n", "<leader><right>", ":bn<CR>", { noremap = true, silent = true, desc = "Next buffer" })
+keymap.set("n", "<leader>ca", ":up <bar> %bd <bar> e# <bar> bd# <CR>", { noremap = true, silent = true, desc = "Update and close all buffers except current" })
 
 -- Track state internally
 local transparency_enabled = false
