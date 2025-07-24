@@ -1,6 +1,8 @@
 [user]
     name = jeff
-    email = 46485515+jeff-tooke@users.noreply.github.com
+    email = 46485515+jeff.tooke@users.noreply.github.com
+[includeIf "gitdir:~/projects/work/"]
+    path = ~/projects/.gitconfig-work
 [credential]
 	helper = osxkeychain
 [url "https://github.com/"]
