@@ -5,6 +5,7 @@ alias ....='cd ../../../'
 alias .....='cd ../../../../'
 alias c=clear
 alias cat='/opt/homebrew/bin/bat'
+alias cc='/opt/homebrew/bin/claude'
 alias code='open -a vscodium'
 alias dkm='lazydocker'
 alias gac='git add -A && git commit -m'
@@ -13,6 +14,7 @@ alias gbd='git branch -D'
 alias gco='git checkout'
 alias gd='git diff -w'
 alias gds='git diff -w --staged'
+alias ge='/opt/homebrew/bin/gemini'
 alias gg='lazygit'
 alias gla=pretty_git_log_all
 alias grep='/opt/homebrew/bin/rg'
@@ -27,6 +29,7 @@ alias ll='eza -lh --icons --no-permissions --no-filesize --no-user --group-direc
 alias ls='eza -ah --icons --no-permissions --group-directories-first --colour=always'
 alias lsa='eza -lah --icons --group-directories-first --colour=always'
 alias nv='/opt/homebrew/bin/nvim'
+alias oc='/opt/homebrew/bin/opencode'
 alias ping='ping -c 10'
 alias pf='btop'
 alias rm=trash
