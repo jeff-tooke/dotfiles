@@ -24,6 +24,7 @@ return {
         "ansiblels",
         "bashls",
         "dockerls",
+        "gopls",
         "jsonls",
         "lua_ls",
         "marksman",

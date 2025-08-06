@@ -26,6 +26,9 @@ return {
         ["dockerls"] = function()
           lspconfig.dockerls.setup()
         end,
+        ["gopls"] = function()
+          lspconfig.gopls.setup()
+        end,
         ["jsonls"] = function()
           lspconfig.jsonls.setup()
         end,
