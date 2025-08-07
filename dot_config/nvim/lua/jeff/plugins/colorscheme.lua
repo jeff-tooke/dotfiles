@@ -9,21 +9,11 @@ return {
     catppuccin.setup {
       flavour = "macchiato",
       transparent_background = true,
-      integrations = {
-        telescope = {
-          enabled = true,
-        },
-        cmp = true,
-        treesitter = true,
-        mason = true,
-        alpha = true,
-        which_key = true,
+      float = {
+        transparent = true,
+        solid = true,
       },
-      dim_inactive = {
-        enabled = true,
-        shade = "dark",
-        percentage = 0.15,
-      },
+      auto_integrations = true,
     }
     vim.cmd.colorscheme "catppuccin"
   end,
