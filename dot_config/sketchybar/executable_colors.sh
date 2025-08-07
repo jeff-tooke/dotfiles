@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Catppuccin 
+# Catppuccin
 export BLACK=0xff181926
 export WHITE=0xffcad3f5
 export RED=0xffed8796
@@ -16,8 +16,7 @@ export BG1=0x603c3e4f
 export BG2=0xff494d64
 
 # General bar colors
-export BAR_COLOR=$BG0 
-export BAR_BORDER_COLOR=$BG2 
+export BAR_COLOR=$BG0
 export BACKGROUND_1=$BG1
 export BACKGROUND_2=$BG2
 export ICON_COLOR=$WHITE
