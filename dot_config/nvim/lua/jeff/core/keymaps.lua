@@ -27,7 +27,7 @@ keymap.set("n", "<leader><right>", ":bn<CR>", { noremap = true, silent = true, d
 keymap.set("n", "<leader>ca", ":up <bar> %bd <bar> e# <bar> bd# <CR>", { noremap = true, silent = true, desc = "Update and close all buffers except current" })
 
 -- Track state internally
-local transparency_enabled = false
+local transparency_enabled = true
 
 local function toggle_transparency()
   transparency_enabled = not transparency_enabled
