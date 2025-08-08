@@ -1,5 +1,5 @@
-background-opacity=0.75
-background-blur=25
+background-opacity=0.60
+background-blur=10
 theme = catppuccin-macchiato
 font-family = "MesloLGS Nerd Font"
 font-size=18
