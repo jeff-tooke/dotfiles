@@ -15,8 +15,10 @@ for m in $(aerospace list-monitors | awk '{print $1}'); do
       padding_left=2
       padding_right=2
       label.padding_right=20
-      label.color=$GREY
-      label.highlight_color=$WHITE
+      label.color=$WHITE
+      label.highlight_color=$RED
+      # label.color=$GREY
+      # label.highlight_color=$WHITE
       label.font="sketchybar-app-font:Regular:14.0"
       label.y_offset=-1
       background.color=$BACKGOUND_1
@@ -45,7 +47,7 @@ for m in $(aerospace list-monitors | awk '{print $1}'); do
   for i in $(aerospace list-workspaces --monitor $m --empty); do
     sketchybar --set space.$i display=0
   done
-  
+
 done
 
 
