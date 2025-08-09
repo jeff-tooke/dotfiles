@@ -1,15 +1,8 @@
 # General
 add_newline = false
 format = "$all"
-right_format = "$custom"
-# right_format = "$custom.aws_profile_clean"
-#right_format = "$kubernetes"
-#right_format = "$aws"
-#right_format = "$docker_context"
-#right_format = "$kubernetes$aws"
-#right_format = "$kubernetes$docker_context"
-#right_format = "$aws$docker_context"
-#right_format = "$kubernetes$aws$docker_context"
+right_format = """${custom.kubernetes} ${custom.aws_profile} """
+# right_format = """$custom.aws_profile $custom.kubernetes """
 
 # Color Palette
 palette = "catppuccin_macchiato"
@@ -72,36 +65,27 @@ ssh_only = true
 style = "green"
 format = "on [$hostname]($style) "
 
-#[kubernetes]
-#symbol = "☸️ "
-#style = "blue"
-#format = "[$symbol$context ($namespace)]($style) "
-#disabled = false
+[custom."kubernetes"]
+command = '''
+current_context=$(kubectl config current-context 2>/dev/null)
+[ -z "$current_context" ] && exit 1
 
-# [custom."aws_profile_clean"]
-# description = "Custom AWS Prompt"
-# command = '''
-# profile="${AWS_VAULT:-$AWS_PROFILE}"
-#
-# # Extract the middle environment part (between first "-" and first "/")
-# env=$(echo "$profile" | sed -E 's/^[^-]+-([^-]+-[^-]+)-\/.*/\1/')
-#
-# # Extract the user role from last segment before "-user"
-# user=$(echo "$profile" | sed -E 's/.*\/[^/]*-([^-]+)-user$/\1/')
-#
-# # Fallback if pattern doesn't match
-# if [ -z "$env" ] || [ -z "$user" ]; then
-#   echo "$profile"
-# else
-#   echo "${env}/${user}"
-# fi
-# '''
+cluster_name=$(kubectl config view --minify --output=jsonpath="{.contexts[?(@.name==\"$current_context\")].context.cluster}" 2>/dev/null)
 
-# when = '''[ -n "${AWS_PROFILE:-$AWS_VAULT}" ]'''
-# format = '[$output]($style)'
-# style = "peach bold"
+if [ -z "$cluster_name" ]; then
+    cluster_name="$current_context"
+fi
 
-[custom."aws_profile_clean"]
+cleaned_cluster_name=$(echo "$cluster_name" | sed -E "s/^arn:aws:eks:[^:]+:[^:]+:cluster\\///; s/^gke_[^_]+_[^_]+_//; s/.*@//" | sed -E "s/-(cluster|context|kubeconfig)$//i; s/_(cluster|context|kubeconfig)$//i")
+
+echo " $cleaned_cluster_name "
+'''
+when = '''[ -n "$(kubectl config current-context 2>/dev/null)" ]'''
+symbol = "󱃾 "
+format = "[$symbol$output]($style)"
+style = "bold blue"
+
+[custom."aws_profile"]
 command = '''
 profile="${AWS_VAULT:-$AWS_PROFILE}"
 
@@ -160,7 +144,17 @@ disabled = true
 [package]
 disabled = true
 
+[docker_context]
+disabled = true
+format = "[$symbol]($style)"
+
+# [kubernetes]
+# format = "[$symbol $cluster]($style) "
+
 [lua]
+format = "[$symbol]($style)"
+
+[nodejs]
 format = "[$symbol]($style)"
 
 [python]
