@@ -1,7 +1,7 @@
 # General
 add_newline = false
 format = "$all"
-right_format = """${custom.kubernetes} ${custom.aws_profile} """
+right_format = """${custom.kubernetes} ${custom.aws_profile}"""
 # right_format = """$custom.aws_profile $custom.kubernetes """
 
 # Color Palette
