@@ -44,11 +44,12 @@ crust = "#181926"
 
 # Modules
 [character]
-success_symbol = "[❯](bold green)"
+success_symbol = "[ ❯](bold green)"
 error_symbol = "[❯](bold red)"
 vicmd_symbol = "[❮](bold purple)"
 
 [directory]
+disabled = true
 style = "blue"
 format = "[$path]($style) "
 
