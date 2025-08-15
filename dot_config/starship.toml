@@ -65,25 +65,54 @@ ssh_only = true
 style = "green"
 format = "on [$hostname]($style) "
 
+
 [custom."kubernetes"]
 command = '''
-current_context=$(kubectl config current-context 2>/dev/null)
-[ -z "$current_context" ] && exit 1
+  # Read current context and cluster name from local kubeconfig
+  read current_context cluster_name <<<"$(kubectl config get-contexts --no-headers 2>/dev/null | awk '$1=="*" {print $2, $3}')"
 
-cluster_name=$(kubectl config view --minify --output=jsonpath="{.contexts[?(@.name==\"$current_context\")].context.cluster}" 2>/dev/null)
+  # Exit if no current context is set
+  [ -z "$current_context" ] && exit 1
 
-if [ -z "$cluster_name" ]; then
-    cluster_name="$current_context"
-fi
+  # Fallback if cluster_name is empty
+  [ -z "$cluster_name" ] && cluster_name="$current_context"
 
-cleaned_cluster_name=$(echo "$cluster_name" | sed -E "s/^arn:aws:eks:[^:]+:[^:]+:cluster\\///; s/^gke_[^_]+_[^_]+_//; s/.*@//" | sed -E "s/-(cluster|context|kubeconfig)$//i; s/_(cluster|context|kubeconfig)$//i")
+  # Clean up cluster name
+  cleaned_cluster_name=$(echo "$cluster_name" | \
+    sed -E "s/^arn:aws:eks:[^:]+:[^:]+:cluster\\///; \
+            s/^gke_[^_]+_[^_]+_//; \
+            s/.*@//" | \
+    sed -E "s/-(cluster|context|kubeconfig)$//i; \
+            s/_(cluster|context|kubeconfig)$//i")
 
-echo " $cleaned_cluster_name "
+  echo " $cleaned_cluster_name "
 '''
+# Only run this module if a current context exists
 when = '''[ -n "$(kubectl config current-context 2>/dev/null)" ]'''
 symbol = "󱃾 "
+ignore_timeout = true
 format = "[$symbol$output]($style)"
 style = "bold blue"
+
+# [custom."kubernetes"]
+# command = '''
+# current_context=$(kubectl config view --raw --output=jsonpath='{.current-context}' 2>/dev/null)
+# [ -z "$current_context" ] && exit 1
+#
+# cluster_name=$(kubectl config view --minify --output=jsonpath="{.contexts[?(@.name==\"$current_context\")].context.cluster}" 2>/dev/null)
+#
+# if [ -z "$cluster_name" ]; then
+#     cluster_name="$current_context"
+# fi
+#
+# cleaned_cluster_name=$(echo "$cluster_name" | sed -E "s/^arn:aws:eks:[^:]+:[^:]+:cluster\\///; s/^gke_[^_]+_[^_]+_//; s/.*@//" | sed -E "s/-(cluster|context|kubeconfig)$//i; s/_(cluster|context|kubeconfig)$//i")
+#
+# echo " $cleaned_cluster_name "
+# '''
+# when = '''[ -n "$(kubectl config view --raw --output=jsonpath='{.current-context}' 2>/dev/null)" ]'''
+# symbol = "󱃾 "
+# format = "[$symbol$output]($style)"
+# style = "bold blue"
 
 [custom."aws_profile"]
 command = '''
