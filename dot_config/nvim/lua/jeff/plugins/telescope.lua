@@ -14,8 +14,8 @@ return {
           preview = false,
           layout_strategy = "center",
           layout_config = {
-            width = 0.4,
-            height = 0.6,
+            width = 0.75,
+            height = 0.75,
           },
         },
       }
