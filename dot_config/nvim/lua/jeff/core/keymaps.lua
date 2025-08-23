@@ -17,7 +17,7 @@ keymap.set("n", "<leader>nh", ":nohl<CR>", { desc = "Clear search highlights" })
 keymap.set("n", "<leader>e", ":Oil<CR>", { desc = "Open file explorer" })
 keymap.set("n", "<leader>w", ":up<CR>", { noremap = true, silent = true, desc = "Save buffer" })
 keymap.set("n", "<leader>q", ":wqa<CR>", { noremap = true, silent = true, desc = "Save and exit all buffers" })
-keymap.set("n", "<leader>ca", ":up <bar> %bd <bar> e# <bar> bd# <CR>", { noremap = true, silent = true, desc = "Update and close all buffers except current" })
+keymap.set("n", "<leader>bc", ":up <bar> %bd <bar> e# <bar> bd# <CR>", { noremap = true, silent = true, desc = "Update and close all buffers except current" })
 
 -- Track state internally
 local transparency_enabled = true

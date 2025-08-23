@@ -71,7 +71,7 @@ return {
       function()
         Snacks.bufdelete()
       end,
-      desc = "Delete Buffer",
+      desc = "Delete current Buffer",
     },
     {
       "]]",
