@@ -53,6 +53,13 @@ return {
   },
   keys = {
     {
+      "<leader>gg",
+      function()
+        Snacks.lazygit { cwd = Snacks.git.get_root() }
+      end,
+      desc = "Lazygit",
+    },
+    {
       "<leader>fp",
       function()
         Snacks.picker.projects()
