@@ -17,13 +17,24 @@ return {
             width = 0.75,
             height = 0.75,
           },
+          hidden = true,
+          no_ignore = false,
+          file_ignore_patterns = {
+            "node_modules/.*",
+            ".git/.*",
+            "%.DS_Store",
+            "%.pyc",
+            "__pycache__/.*",
+          },
+        },
+        pickers = {
+          find_files = {
+            hidden = true,
+          },
         },
       }
-
       telescope.load_extension "fzf"
-
       local keymap = vim.keymap
-
       keymap.set("n", "<leader>ff", "<cmd>Telescope find_files<cr>", { desc = "Find files in current directory" })
       keymap.set("n", "<leader>fc", function()
         require("telescope.builtin").find_files { cwd = vim.fn.stdpath "config" }
