@@ -1,6 +1,6 @@
 background-opacity=0.60
 background-blur=10
-theme = catppuccin-macchiato
+theme = "Catppuccin Macchiato"
 font-family = "MesloLGS Nerd Font"
 font-size=18
 cursor-style-blink=false
