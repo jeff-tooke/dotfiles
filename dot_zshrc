@@ -37,6 +37,7 @@ if [ -n "$TMUX" ]; then
 
 # ---- Update $PATH with useful locations ----
   export PATH="$PATH:/usr/sbin:/sbin"
+  export PATH="/opt/homebrew/opt/python@3/libexec/bin:$PATH"
 
 # ---- Source plugins and theme ----
   source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
