@@ -1,4 +1,3 @@
--- }
 return {
   "nvim-lualine/lualine.nvim",
   dependencies = {
@@ -38,6 +37,9 @@ return {
     -- tones from catppuccin (mantle/crust for bg, subtext for fg).
     local term_bg = palette.mantle
     local term_fg = palette.subtext1
+
+    local dark = { fg = term_fg, bg = term_bg }
+    local name = { fg = palette.subtext1, bg = palette.surface1 }
 
     local term_colors = {
       -- Normal mode in terminal (navigating with vim keys after <C-q>)
@@ -114,6 +116,141 @@ return {
       },
     }
 
+    local claude_extension = {
+      filetypes = { "claudecode_term" },
+      sections = {
+        lualine_a = {
+          {
+            function()
+              return "Claude Code"
+            end,
+            color = { name },
+          },
+        },
+        lualine_b = { {
+          function()
+            return ""
+          end,
+          color = dark,
+        } },
+        lualine_c = { {
+          function()
+            return ""
+          end,
+          color = dark,
+        } },
+        lualine_x = { {
+          function()
+            return ""
+          end,
+          color = dark,
+        } },
+        lualine_y = { {
+          function()
+            return ""
+          end,
+          color = dark,
+        } },
+        lualine_z = { {
+          function()
+            return ""
+          end,
+          color = dark,
+        } },
+      },
+      -- options = {
+      --   theme = {
+      --     normal = {
+      --       a = { fg = palette.subtext1, bg = palette.surface1 },
+      --       b = { fg = term_fg, bg = term_bg },
+      --       c = { fg = term_fg, bg = term_bg },
+      --       x = { fg = term_fg, bg = term_bg },
+      --       y = { fg = term_fg, bg = term_bg },
+      --       z = { fg = term_fg, bg = term_bg },
+      --     },
+      --     insert = {
+      --       a = { fg = palette.subtext1, bg = palette.surface1 },
+      --       b = { fg = term_fg, bg = term_bg },
+      --       c = { fg = term_fg, bg = term_bg },
+      --       x = { fg = term_fg, bg = term_bg },
+      --       y = { fg = term_fg, bg = term_bg },
+      --       z = { fg = term_fg, bg = term_bg },
+      --     },
+      --     visual = {
+      --       a = { fg = palette.subtext1, bg = palette.surface1 },
+      --       b = { fg = term_fg, bg = term_bg },
+      --       c = { fg = term_fg, bg = term_bg },
+      --       x = { fg = term_fg, bg = term_bg },
+      --       y = { fg = term_fg, bg = term_bg },
+      --       z = { fg = term_fg, bg = term_bg },
+      --     },
+      --     terminal = {
+      --       a = { fg = palette.subtext1, bg = palette.surface1 },
+      --       b = { fg = term_fg, bg = term_bg },
+      --       c = { fg = term_fg, bg = term_bg },
+      --       x = { fg = term_fg, bg = term_bg },
+      --       y = { fg = term_fg, bg = term_bg },
+      --       z = { fg = term_fg, bg = term_bg },
+      --     },
+      --   },
+      -- },
+    }
+
+    local opencode_extension = {
+      filetypes = { "opencode_term" },
+      sections = {
+        lualine_a = {
+          {
+            function()
+              return "OpenCode"
+            end,
+            color = { fg = palette.subtext1, bg = palette.surface1 },
+          },
+        },
+        lualine_b = {},
+        lualine_c = {},
+        lualine_x = {},
+        lualine_y = {},
+        lualine_z = {},
+      },
+      options = {
+        theme = {
+          normal = {
+            a = { fg = palette.subtext1, bg = palette.surface1 },
+            b = { fg = term_fg, bg = term_bg },
+            c = { fg = term_fg, bg = term_bg },
+            x = { fg = term_fg, bg = term_bg },
+            y = { fg = term_fg, bg = term_bg },
+            z = { fg = term_fg, bg = term_bg },
+          },
+          insert = {
+            a = { fg = palette.subtext1, bg = palette.surface1 },
+            b = { fg = term_fg, bg = term_bg },
+            c = { fg = term_fg, bg = term_bg },
+            x = { fg = term_fg, bg = term_bg },
+            y = { fg = term_fg, bg = term_bg },
+            z = { fg = term_fg, bg = term_bg },
+          },
+          visual = {
+            a = { fg = palette.subtext1, bg = palette.surface1 },
+            b = { fg = term_fg, bg = term_bg },
+            c = { fg = term_fg, bg = term_bg },
+            x = { fg = term_fg, bg = term_bg },
+            y = { fg = term_fg, bg = term_bg },
+            z = { fg = term_fg, bg = term_bg },
+          },
+          terminal = {
+            a = { fg = palette.subtext1, bg = palette.surface1 },
+            b = { fg = term_fg, bg = term_bg },
+            c = { fg = term_fg, bg = term_bg },
+            x = { fg = term_fg, bg = term_bg },
+            y = { fg = term_fg, bg = term_bg },
+            z = { fg = term_fg, bg = term_bg },
+          },
+        },
+      },
+    }
+
     -- ── Main setup ───────────────────────────────────────────────────────
 
     lualine.setup {
@@ -163,7 +300,7 @@ return {
         lualine_y = { "progress" },
         lualine_z = { emoji_location },
       },
-      extensions = { terminal_extension },
+      extensions = { terminal_extension, claude_extension, opencode_extension },
     }
 
     vim.api.nvim_create_autocmd("ModeChanged", {
