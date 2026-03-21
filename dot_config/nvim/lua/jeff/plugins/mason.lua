@@ -19,21 +19,6 @@ return {
       },
     }
 
-    mason_lspconfig.setup {
-      ensure_installed = {
-        "ansiblels",
-        "bashls",
-        "dockerls",
-        "gopls",
-        "jsonls",
-        "lua_ls",
-        "marksman",
-        "pyright",
-        "terraformls",
-        "yamlls",
-      },
-    }
-
     mason_tool_installer.setup {
       ensure_installed = {
         "prettier",

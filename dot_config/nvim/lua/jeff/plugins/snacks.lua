@@ -2,8 +2,17 @@ return {
   "folke/snacks.nvim",
   priority = 1000,
   lazy = false,
+
   ---@type snacks.Config
   opts = {
+    -- terminal = {
+    --   -- Default bottom split settings
+    --   split = {
+    --     direction = "horizontal",
+    --     size = 20,
+    --     startinsert = true,
+    --   },
+    -- },
     bigfile = { enabled = false },
     dashboard = {
       enabled = true,
@@ -52,6 +61,24 @@ return {
     },
   },
   keys = {
+    -- {
+    --   "<leader>t",
+    --   function()
+    --     -- Toggle a bottom split terminal
+    --     Snacks.terminal(nil, { win = term_opts.split })
+    --     -- Snacks.terminal.toggle(term_opts.split)
+    --   end,
+    --   desc = "Toggle bottom split terminal",
+    -- },
+    -- {
+    --   "<leader>tt",
+    --   function()
+    --     -- Open a floating terminal for quick tasks
+    --     Snacks.terminal(nil, { win = term_opts.popup })
+    --     -- Snacks.terminal.floating(term_opts.popup)
+    --   end,
+    --   desc = "Open floating terminal",
+    -- },
     {
       "<leader>gg",
       function()
@@ -96,26 +123,35 @@ return {
       desc = "Prev Reference",
       mode = { "n", "t" },
     },
-    -- {
-    --   "<leader>N",
-    --   desc = "Neovim News",
-    --   function()
-    --     Snacks.win {
-    --       file = vim.api.nvim_get_runtime_file("doc/news.txt", false)[1],
-    --       width = 0.6,
-    --       height = 0.6,
-    --       wo = {
-    --         spell = false,
-    --         wrap = false,
-    --         signcolumn = "yes",
-    --         statuscolumn = " ",
-    --         conceallevel = 3,
-    --       },
-    --     }
-    --   end,
-    -- },
   },
+
   init = function()
+    -- local term_bufnr = nil
+    -- local term_winid = nil
+    --
+    -- -- vim.api.nvim_set_keymap("n", "<leader>t", "<cmd>lua TogglePersistentTerm()<CR>", { noremap = true, silent = true })
+    --
+    -- function TogglePersistentTerm()
+    --   local api = vim.api
+    --   if term_winid and api.nvim_win_is_valid(term_winid) then
+    --     -- Terminal is open, hide it and return to previous buffer
+    --     api.nvim_win_hide(term_winid)
+    --     api.nvim_set_current_buf(api.nvim_get_current_buf())
+    --   else
+    --     -- Create terminal buffer if missing
+    --     if not term_bufnr or not api.nvim_buf_is_valid(term_bufnr) then
+    --       term_bufnr = api.nvim_create_buf(false, true) -- scratch buffer
+    --       api.nvim_buf_set_name(term_bufnr, "PersistentTerm")
+    --       vim.fn.termopen(os.getenv "SHELL" or "/bin/zsh")
+    --     end
+    --
+    --     -- Open bottom split and attach buffer
+    --     api.nvim_command "botright 15split"
+    --     term_winid = api.nvim_get_current_win()
+    --     api.nvim_win_set_buf(term_winid, term_bufnr)
+    --     api.nvim_command "startinsert"
+    --   end
+    -- end
     vim.api.nvim_create_autocmd("User", {
       pattern = "VeryLazy",
       callback = function()

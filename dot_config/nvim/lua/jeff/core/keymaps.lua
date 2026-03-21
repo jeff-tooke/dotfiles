@@ -16,7 +16,17 @@ keymap.set({ "n", "v" }, "<Right>", "<Nop>", opts)
 keymap.set("n", "<leader>nh", ":nohl<CR>", { desc = "Clear search highlights" })
 keymap.set("n", "<leader>e", ":Oil<CR>", { desc = "Open file explorer" })
 keymap.set("n", "<leader>w", ":up<CR>", { noremap = true, silent = true, desc = "Save buffer" })
-keymap.set("n", "<leader>q", ":wqa<CR>", { noremap = true, silent = true, desc = "Save and exit all buffers" })
+-- keymap.set("n", "<leader>q", ":wqa<CR>", { noremap = true, silent = true, desc = "Save and exit all buffers" })
+keymap.set("n", "<leader>q", function()
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].buftype == "" and vim.bo[buf].modified then
+      vim.api.nvim_buf_call(buf, function()
+        vim.cmd "write"
+      end)
+    end
+  end
+  vim.cmd "qa!"
+end, { noremap = true, silent = true, desc = "Save and exit all buffers" })
 keymap.set("n", "<leader>bc", ":up <bar> %bd <bar> e# <bar> bd# <CR>", { noremap = true, silent = true, desc = "Update and close all buffers except current" })
 
 -- Track state internally
