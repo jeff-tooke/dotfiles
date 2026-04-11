@@ -5,6 +5,7 @@ function my_history {
 
   if [[ -n "$clear" ]]; then
     echo -n >| "$HISTFILE"  # Clear the history file
+    fc -p                   # Clear in memory session history
     echo "History cleared."
   else
     fc -l 1  # Show all history starting from the first command
@@ -18,6 +19,6 @@ SAVEHIST=100000      # Number of lines stored in history file
 
 # History options
 setopt hist_ignore_dups
-setopt hist_ignore_space      
-setopt inc_append_history     
-setopt extended_history       
+setopt hist_ignore_space
+setopt inc_append_history
+setopt extended_history
