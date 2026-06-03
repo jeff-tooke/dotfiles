@@ -42,7 +42,7 @@ local mod = "SUPER"
 
 hl.bind(mod .. " + Return", hl.dsp.exec_cmd("foot"))
 hl.bind(mod .. " + Q", hl.dsp.window.close())
-hl.bind(mod .. " + F", hl.dsp.window.fullscreen({ mode = "toggle" }))
+hl.bind(mod .. " + F", hl.dsp.window.fullscreen({ mode = "fullscreen" }))
 
 -- Focus (vim-style)
 hl.bind(mod .. " + H", hl.dsp.focus({ direction = "left" }))
