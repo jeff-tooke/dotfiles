@@ -19,6 +19,7 @@ alias gg='lazygit'
 alias gla=pretty_git_log_all
 alias grep='/opt/homebrew/bin/rg'
 alias gst='git rev-parse --git-dir > /dev/null 2>&1 && git status || eza'
+alias gpu='wakeonlan 08:bf:b8:ee:cc:98'
 alias hf='defaults write com.apple.finder AppleShowAllFiles NO; killall Finder /System/Library/CoreServices/Finder.app'
 alias h='my_history'
 alias hc='my_history -c'
