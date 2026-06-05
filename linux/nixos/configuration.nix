@@ -39,7 +39,7 @@
   };
 
   # List packages installed in system profile.
-  environment.systemPackages = with pkgs; [ neovim git wget foot wl-clipboard wofi waybar dunst hyprpaper slurp grim swaylock greetd tuigreet];
+  environment.systemPackages = with pkgs; [ neovim git wget foot wl-clipboard wofi waybar dunst hyprpaper slurp grim swaylock greetd tuigreet chezmoi starship yazi fzf fd zoxide tmux ];
 
   programs.hyprland.enable = true;
   programs.zsh.enable = true;
