@@ -86,6 +86,8 @@ elif [ -f /etc/os-release ]; then
             PACKAGES+=("lazygit")
             PACKAGES+=("python")
             PACKAGES+=("python-pip")
+            PACKAGES+=("qt6-wayland")
+            PACKAGES+=("xdg-desktop-portal-hyprland")
 
             # Arch-only desktop environment additions
             # PACKAGES+=(
