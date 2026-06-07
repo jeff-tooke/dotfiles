@@ -79,6 +79,7 @@ elif [ -f /etc/os-release ]; then
             INSTALL_ARGS="-S --needed --noconfirm"
 
             PACKAGES+=("base-devel")
+            PACKAGES+=("greetd-tuigreet")
             PACKAGES+=("hyprland")
             PACKAGES+=("hyprpaper")
             PACKAGES+=("k9s")
