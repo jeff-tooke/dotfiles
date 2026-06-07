@@ -73,7 +73,7 @@ elif [ -f /etc/os-release ]; then
             PACKAGES+=("python-pip")
             ;;
 
-        arch|cachyos|manjaro)
+        arch|archarm|cachyos|manjaro)
             section "Configuring for Arch Linux"
             PKG_MANAGER="pacman"
             INSTALL_ARGS="-S --needed --noconfirm"
