@@ -15,8 +15,8 @@ section() { echo -e "\n${BLUE}--- $1 ---${NC}\n" | tee -a "$LOG_FILE"; }
 
 # Define common packages for Linux
 PACKAGES=(
-    "bat" "btop" "chezmoi" "curl" "dunst" "eza" "fastfetch" "fd" "flameshot" "foot" "fzf" "git" "jq" "make" "neovim"
-    "podman" "podman-compose" "ripgrep" "starship" "tmux" "unzip" "waybar" "wget" "wl-clipboard" "wofi" "zoxide" "zsh"
+    "bat" "btop" "chezmoi" "curl" "dunst" "eza" "fastfetch" "fd" "flameshot" "foot" "fzf" "git" "grim" "jq" "make" "neovim"
+    "podman" "podman-compose" "ripgrep" "slurp" "starship" "tmux" "unzip" "waybar" "wget" "wl-clipboard" "wofi" "zoxide" "zsh"
     "zsh-autosuggestions" "zsh-syntax-highlighting"
 )
 
@@ -85,22 +85,23 @@ elif [ -f /etc/os-release ]; then
             PACKAGES+=("k9s")
             PACKAGES+=("lazydocker")
             PACKAGES+=("lazygit")
+            PACKAGES+=("polkit")
             PACKAGES+=("python")
             PACKAGES+=("python-pip")
-            PACKAGES+=("qt5-wayland")
-            PACKAGES+=("qt6-wayland")
-            PACKAGES+=("xdg-desktop-portal-gtk")
-            PACKAGES+=("xdg-desktop-portal-hyprland")
+            # PACKAGES+=("qt5-wayland")
+            # PACKAGES+=("qt6-wayland")
+            # PACKAGES+=("xdg-desktop-portal-gtk")
+            # PACKAGES+=("xdg-desktop-portal-hyprland")
 
             # Arch-only desktop environment additions
-            # PACKAGES+=(
-            #     "hypridle" "hyprlock" "base-devel"
-            #     "xdg-desktop-portal-hyprland" "xdg-desktop-portal-gtk" "polkit-gnome"
-            #       "gnupg"
-            #     "noto-fonts" "noto-fonts-emoji"
-            #     "papirus-icon-theme" "gtk3" "gtk4" "qt5-wayland" "qt6-wayland"
-            #     "brightnessctl" "xdg-utils" "openssh"
-            # )
+            PACKAGES+=(
+                "hypridle" "hyprlock" "base-devel"
+                "xdg-desktop-portal-hyprland" "xdg-desktop-portal-gtk" "polkit-gnome"
+                  "gnupg"
+                "noto-fonts" "noto-fonts-emoji"
+                "papirus-icon-theme" "gtk3" "gtk4" "qt5-wayland" "qt6-wayland"
+                "brightnessctl" "xdg-utils" "openssh"
+            )
             IS_ARCH=true
             ;;
 
