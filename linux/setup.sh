@@ -106,7 +106,7 @@ elif [ -f /etc/os-release ]; then
             # Hyprland desktop minimum set:
             #   compositor + portals, auth agent, Qt/Wayland, audio (pipewire),
             #   network (NetworkManager), greetd, lock/idle, wallpaper,
-            #   fonts/icons, misc desktop glue.
+            #   fonts/icons, misc desktop glue, uwsm session manager.
             PACKAGES+=(
                 "hyprland" "hyprpaper" "hyprlock" "hypridle"
                 "xdg-desktop-portal-hyprland" "xdg-desktop-portal-gtk"
@@ -117,6 +117,7 @@ elif [ -f /etc/os-release ]; then
                 "noto-fonts" "noto-fonts-emoji" "ttf-jetbrains-mono-nerd"
                 "papirus-icon-theme"
                 "brightnessctl" "xdg-utils"
+                "uwsm"
             )
             IS_ARCH=true
             ;;
@@ -187,23 +188,26 @@ if [ "$IS_ARCH" = true ]; then
     section "Enabling NetworkManager"
     sudo systemctl enable NetworkManager.service
 
-    section "Configuring greetd + tuigreet"
+    section "Configuring greetd + tuigreet (uwsm-managed Hyprland session)"
+    # uwsm is the Arch-recommended way to launch Hyprland: it wraps the
+    # compositor in a proper systemd user session so XDG/D-Bus env, graphical-
+    # session.target, and portal services are wired up correctly.
     sudo tee /etc/greetd/config.toml >/dev/null <<'EOF'
 [terminal]
 vt = 1
 
 [default_session]
-command = "tuigreet --time --remember --remember-session --asterisks --cmd start-hyprland"
+command = "tuigreet --time --remember --remember-session --asterisks --cmd 'uwsm start hyprland.desktop'"
 user = "greeter"
 EOF
     sudo systemctl enable greetd.service
     log "/etc/greetd/config.toml written; greetd.service enabled"
 
     if [ ! -f /usr/share/wayland-sessions/hyprland.desktop ]; then
-        warn "No /usr/share/wayland-sessions/hyprland.desktop — tuigreet uses --cmd directly so this is informational only"
+        warn "No /usr/share/wayland-sessions/hyprland.desktop — uwsm needs this session file (shipped by the hyprland package)"
     fi
-    if ! command -v start-hyprland &>/dev/null; then
-        warn "start-hyprland wrapper not on PATH — create it before rebooting, e.g. a script that exports XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=Hyprland then exec Hyprland"
+    if ! command -v uwsm &>/dev/null; then
+        warn "uwsm not found on PATH — package install likely failed; re-run the pacman step"
     fi
 
     section "Adding $USER to video,input groups"
@@ -293,12 +297,11 @@ if [ "$IS_ARCH" = true ]; then
     cat <<'EOF'
 
 Next steps (Arch):
-  1. Ensure a 'start-hyprland' wrapper is on PATH (exports Wayland env vars
-     then exec Hyprland). Example: ~/.local/bin/start-hyprland.
-  2. Reboot. tuigreet should appear on tty1; log in to enter Hyprland.
-  3. Once the desktop is verified, uncomment the chezmoi block in this
+  1. Reboot. tuigreet should appear on tty1; logging in launches Hyprland
+     via 'uwsm start hyprland.desktop' as a managed systemd user session.
+  2. Once the desktop is verified, uncomment the chezmoi block in this
      script and re-run to deploy dotfiles to ~/.config.
-  4. After chezmoi apply, uncomment the TPM block and re-run to install
+  3. After chezmoi apply, uncomment the TPM block and re-run to install
      tmux plugins.
 
 EOF
