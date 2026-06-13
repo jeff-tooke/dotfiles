@@ -14,6 +14,30 @@
 #       git clone --recurse-submodules https://github.com/<user>/dotfiles ~/.dotfiles
 #   - Run as the target user (NOT root); the script will sudo when needed
 #
+# Arch first-boot bootstrap — run ONCE as root if sudo/git are missing
+# (typical on a fresh archinstall before any user provisioning):
+#
+#   # 1. Switch to the root account (use the root password set in archinstall)
+#   su -
+#
+#   # 2. Install the bare minimum needed to run this script
+#   pacman -Sy --needed sudo git base-devel
+#
+#   # 3. Add your existing user to the wheel group (archinstall always
+#   #    creates a user, but does not always add them to wheel).
+#   #    Replace <user> with your username.
+#   usermod -aG wheel <user>
+#
+#   # 4. Allow members of the wheel group to use sudo.
+#   #    Uncomment the line:  %wheel ALL=(ALL:ALL) ALL
+#   EDITOR=nano visudo
+#
+#   # 5. Drop back to your user, clone the dotfiles, run the script.
+#   exit                    # leave the root shell
+#   su - <user>             # log in as your user (or just reboot + log in)
+#   git clone --recurse-submodules https://github.com/<user>/dotfiles ~/.dotfiles
+#   bash ~/.dotfiles/linux/setup.sh
+#
 # Debian/Ubuntu/Fedora/RHEL: a working install with sudo + curl + git.
 # macOS: a fresh user account; Xcode CLI tools + Homebrew will be installed.
 # ============================================================================
