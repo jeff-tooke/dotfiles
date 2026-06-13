@@ -64,6 +64,7 @@ PACKAGES=(
 
 RUN_STANDARD_LINUX_INSTALL=true
 IS_ARCH=false
+IS_VM=false
 
 # =============================================================================
 # 1. Detect OS and install dependencies
@@ -89,6 +90,17 @@ elif [ -f /etc/os-release ]; then
     . /etc/os-release
     DISTRO="${ID,,}"
 
+  # --- VM detection -------------------------------------------------------
+    # systemd-detect-virt returns 0 (and prints the hypervisor) inside a guest,
+    # non-zero on bare metal. Gate all guest-only steps on this so a hardware
+    # install is never touched by the VM display fixes below.
+    if command -v systemd-detect-virt &>/dev/null && systemd-detect-virt --quiet; then
+        IS_VM=true
+        log "Hypervisor detected ($(systemd-detect-virt)) — VM-specific steps will run"
+    else
+        log "No hypervisor detected — treating as bare metal"
+    fi
+
     case "$DISTRO" in
         nixos)
             section "Configuring for NixOS"
@@ -104,6 +116,10 @@ elif [ -f /etc/os-release ]; then
             PACKAGES+=("build-essential")
             PACKAGES+=("python3")
             PACKAGES+=("python3-pip")
+
+           if [ "$IS_VM" = true ]; then
+                PACKAGES+=("mesa-utils" "libgl1-mesa-dri")
+            fi
             ;;
 
         fedora|rhel|centos|rocky|almalinux)
@@ -114,6 +130,10 @@ elif [ -f /etc/os-release ]; then
             PACKAGES+=("@Development Tools")
             PACKAGES+=("python")
             PACKAGES+=("python-pip")
+
+            if [ "$IS_VM" = true ]; then
+                PACKAGES+=("mesa-dri-drivers" "mesa-demos")
+            fi
             ;;
 
         arch|archarm|cachyos|manjaro)
@@ -143,6 +163,12 @@ elif [ -f /etc/os-release ]; then
                 "brightnessctl" "xdg-utils"
                 "uwsm"
             )
+
+            if [ "$IS_VM" = true ]; then
+                log "VM detected — adding mesa + mesa-utils for virtio-gpu GL"
+                PACKAGES+=("mesa" "mesa-utils")
+            fi
+
             IS_ARCH=true
             ;;
 
@@ -181,31 +207,6 @@ fi
 
 if [ "$IS_ARCH" = true ]; then
 
-    section "Installing yay (Arch AUR Helper)"
-    if ! command -v yay &>/dev/null; then
-        tmpdir=$(mktemp -d)
-        git clone https://aur.archlinux.org/yay.git "$tmpdir/yay"
-        (cd "$tmpdir/yay" && makepkg -si --noconfirm)
-        rm -rf "$tmpdir"
-        log "yay installed"
-    else
-        warn "yay already installed"
-    fi
-
-    section "Installing AUR packages"
-    AUR_PKGS=(
-        "zen-browser-bin"
-        # "catppuccin-gtk-theme-mocha"
-        # "catppuccin-papirus-folders-git"
-        "claude-code-stable-bin"
-        "opencode-bin"
-    )
-
-    for pkg in "${AUR_PKGS[@]}"; do
-        log "Installing AUR package: $pkg..."
-        yay -S --needed --noconfirm "$pkg" 2>>"$LOG_FILE" || warn "Failed: $pkg — install manually if needed"
-    done
-
     # -----------------------------------------------------------------------
     # Arch: Desktop services (greetd + NetworkManager + group membership)
     # -----------------------------------------------------------------------
@@ -213,9 +214,6 @@ if [ "$IS_ARCH" = true ]; then
     sudo systemctl enable NetworkManager.service
 
     section "Configuring greetd + tuigreet (uwsm-managed Hyprland session)"
-    # uwsm is the Arch-recommended way to launch Hyprland: it wraps the
-    # compositor in a proper systemd user session so XDG/D-Bus env, graphical-
-    # session.target, and portal services are wired up correctly.
     sudo tee /etc/greetd/config.toml >/dev/null <<'EOF'
 [terminal]
 vt = 1
@@ -232,6 +230,54 @@ EOF
     fi
     if ! command -v uwsm &>/dev/null; then
         warn "uwsm not found on PATH — package install likely failed; re-run the pacman step"
+    fi
+
+ if [ "$IS_VM" = true ]; then
+
+        # 1) Kernel console: make tty0 a console so the greeter renders on the
+        #    virtio-gpu display (systemd-boot type-1 entries only).
+        case "$(uname -m)" in
+            aarch64) SERIAL_CON="ttyAMA0" ;;
+            *)       SERIAL_CON="ttyS0" ;;
+        esac
+
+        ENTRIES_DIR=""
+        for d in /boot/loader/entries /efi/loader/entries /boot/efi/loader/entries; do
+            if [ -d "$d" ]; then ENTRIES_DIR="$d"; break; fi
+        done
+
+        if [ -n "$ENTRIES_DIR" ]; then
+            shopt -s nullglob
+            cmdline_changed=false
+            for entry in "$ENTRIES_DIR"/*.conf; do
+                if ! grep -q '^options ' "$entry"; then continue; fi
+                if grep -q 'console=tty0' "$entry"; then
+                    warn "$(basename "$entry"): console=tty0 already set — skipping"
+                    continue
+                fi
+                sudo sed -i "/^options /s|\$| console=${SERIAL_CON} console=tty0|" "$entry"
+                log "$(basename "$entry"): appended 'console=${SERIAL_CON} console=tty0'"
+                cmdline_changed=true
+            done
+            shopt -u nullglob
+            if [ "$cmdline_changed" != true ]; then
+                warn "No type-1 systemd-boot entries with an 'options' line found (UKI/EFISTUB?)."
+                warn "Add 'console=${SERIAL_CON} console=tty0' to your kernel cmdline manually."
+            fi
+        else
+            warn "No systemd-boot entries dir found."
+            warn "GRUB: add 'console=${SERIAL_CON} console=tty0' to GRUB_CMDLINE_LINUX_DEFAULT then regenerate grub.cfg."
+            warn "UKI:  add it to /etc/kernel/cmdline then rebuild (mkinitcpio/ukify)."
+        fi
+
+        # 2) Stop kmscon stealing tty1 from greetd.
+        if systemctl list-unit-files | grep -q 'kmsconvt@'; then
+            sudo systemctl disable --now kmsconvt@tty1.service 2>/dev/null || true
+            sudo systemctl mask kmsconvt@tty1.service
+            log "Masked kmsconvt@tty1.service so greetd owns tty1"
+        else
+            warn "kmsconvt@tty1 not present — nothing to mask (good)"
+        fi
     fi
 
     section "Adding $USER to video,input groups"
