@@ -1,5 +1,23 @@
 #!/bin/bash
 
+# ============================================================================
+# Prerequisites (must be true BEFORE running this script)
+# ----------------------------------------------------------------------------
+# Arch Linux (primary target):
+#   - Base Arch install is complete (archinstall or manual) and booted
+#   - A non-root user account exists with sudo privileges (wheel group)
+#   - Working internet connection
+#   - These packages installed via pacman:  base-devel git sudo
+#     (git is needed to clone this repo; base-devel + git are needed by
+#      makepkg/yay for AUR builds later in the script)
+#   - This repo is cloned to ~/.dotfiles, e.g.:
+#       git clone --recurse-submodules https://github.com/<user>/dotfiles ~/.dotfiles
+#   - Run as the target user (NOT root); the script will sudo when needed
+#
+# Debian/Ubuntu/Fedora/RHEL: a working install with sudo + curl + git.
+# macOS: a fresh user account; Xcode CLI tools + Homebrew will be installed.
+# ============================================================================
+
 set -eE
 
 echo "Starting system provisioning..."
@@ -15,12 +33,13 @@ section() { echo -e "\n${BLUE}--- $1 ---${NC}\n" | tee -a "$LOG_FILE"; }
 
 # Define common packages for Linux
 PACKAGES=(
-    "bat" "btop" "chezmoi" "curl" "dunst" "eza" "fastfetch" "fd" "flameshot" "foot" "fzf" "git" "grim" "jq" "make" "neovim"
+    "bat" "btop" "chezmoi" "curl" "dunst" "eza" "fastfetch" "fd" "foot" "fzf" "git" "grim" "jq" "make" "neovim"
     "podman" "podman-compose" "ripgrep" "slurp" "starship" "tmux" "unzip" "waybar" "wget" "wl-clipboard" "wofi" "zoxide" "zsh"
     "zsh-autosuggestions" "zsh-syntax-highlighting"
 )
 
 RUN_STANDARD_LINUX_INSTALL=true
+IS_ARCH=false
 
 # =============================================================================
 # 1. Detect OS and install dependencies
@@ -78,29 +97,26 @@ elif [ -f /etc/os-release ]; then
             PKG_MANAGER="pacman"
             INSTALL_ARGS="-S --needed --noconfirm"
 
-            PACKAGES+=("base-devel")
-            PACKAGES+=("greetd-tuigreet")
-            PACKAGES+=("hyprland")
-            PACKAGES+=("hyprpaper")
-            PACKAGES+=("k9s")
-            PACKAGES+=("lazydocker")
-            PACKAGES+=("lazygit")
-            PACKAGES+=("polkit")
-            PACKAGES+=("python")
-            PACKAGES+=("python-pip")
-            # PACKAGES+=("qt5-wayland")
-            # PACKAGES+=("qt6-wayland")
-            # PACKAGES+=("xdg-desktop-portal-gtk")
-            # PACKAGES+=("xdg-desktop-portal-hyprland")
-
-            # Arch-only desktop environment additions
+            # Core tooling (not strictly desktop-essential, kept per user goal)
             PACKAGES+=(
-                "hypridle" "hyprlock" "base-devel"
-                "xdg-desktop-portal-hyprland" "xdg-desktop-portal-gtk" "polkit-gnome"
-                  "gnupg"
-                "noto-fonts" "noto-fonts-emoji"
-                "papirus-icon-theme" "gtk3" "gtk4" "qt5-wayland" "qt6-wayland"
-                "brightnessctl" "xdg-utils" "openssh"
+                "base-devel" "greetd-tuigreet" "k9s" "lazydocker" "lazygit"
+                "python" "python-pip" "gnupg" "openssh"
+            )
+
+            # Hyprland desktop minimum set:
+            #   compositor + portals, auth agent, Qt/Wayland, audio (pipewire),
+            #   network (NetworkManager), greetd, lock/idle, wallpaper,
+            #   fonts/icons, misc desktop glue.
+            PACKAGES+=(
+                "hyprland" "hyprpaper" "hyprlock" "hypridle"
+                "xdg-desktop-portal-hyprland" "xdg-desktop-portal-gtk"
+                "polkit" "polkit-gnome"
+                "qt5-wayland" "qt6-wayland" "gtk3" "gtk4"
+                "pipewire" "pipewire-pulse" "wireplumber"
+                "networkmanager"
+                "noto-fonts" "noto-fonts-emoji" "ttf-jetbrains-mono-nerd"
+                "papirus-icon-theme"
+                "brightnessctl" "xdg-utils"
             )
             IS_ARCH=true
             ;;
@@ -165,20 +181,63 @@ if [ "$IS_ARCH" = true ]; then
         yay -S --needed --noconfirm "$pkg" 2>>"$LOG_FILE" || warn "Failed: $pkg — install manually if needed"
     done
 
+    # -----------------------------------------------------------------------
+    # Arch: Desktop services (greetd + NetworkManager + group membership)
+    # -----------------------------------------------------------------------
+    section "Enabling NetworkManager"
+    sudo systemctl enable NetworkManager.service
+
+    section "Configuring greetd + tuigreet"
+    sudo tee /etc/greetd/config.toml >/dev/null <<'EOF'
+[terminal]
+vt = 1
+
+[default_session]
+command = "tuigreet --time --remember --remember-session --asterisks --cmd start-hyprland"
+user = "greeter"
+EOF
+    sudo systemctl enable greetd.service
+    log "/etc/greetd/config.toml written; greetd.service enabled"
+
+    if [ ! -f /usr/share/wayland-sessions/hyprland.desktop ]; then
+        warn "No /usr/share/wayland-sessions/hyprland.desktop — tuigreet uses --cmd directly so this is informational only"
+    fi
+    if ! command -v start-hyprland &>/dev/null; then
+        warn "start-hyprland wrapper not on PATH — create it before rebooting, e.g. a script that exports XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=Hyprland then exec Hyprland"
+    fi
+
+    section "Adding $USER to video,input groups"
+    sudo usermod -aG video,input "$USER"
+    if getent group seat &>/dev/null; then
+        sudo usermod -aG seat "$USER"
+    fi
+
+    section "Setting zsh as login shell"
+    if getent passwd "$USER" | grep -q '/zsh$'; then
+        warn "Login shell is already zsh"
+    else
+        sudo chsh -s /usr/bin/zsh "$USER" && log "Login shell set to /usr/bin/zsh"
+    fi
+
+    # -----------------------------------------------------------------------
+    # Arch: chezmoi bootstrap (uncomment once Hyprland session is verified)
+    # -----------------------------------------------------------------------
+    # section "Applying dotfiles via chezmoi"
+    # chezmoi init --source "$HOME/.dotfiles"
+    # chezmoi apply --source "$HOME/.dotfiles"
+
 fi
 
-section "Installing JetBrainsMono Nerd Font"
-
-if [ "$IS_ARCH" = true ] || [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
-    log "Arch detected. Installing ttf-jetbrains-mono-nerd via pacman..."
-    sudo pacman -S --needed --noconfirm ttf-jetbrains-mono-nerd
-
-else
+# Arch installs ttf-jetbrains-mono-nerd via pacman as part of the main package
+# list above. Debian/Fedora have no equivalent repo package, so download the
+# Nerd Font release zip manually.
+if [ "$IS_ARCH" != true ] && [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
+    section "Installing JetBrainsMono Nerd Font (manual)"
     FONT_NAME="JetBrainsMono"
     FONT_DIR="$HOME/.local/share/fonts/$FONT_NAME"
 
     if [ ! -d "$FONT_DIR" ]; then
-        log "Debian/Fedora detected. Downloading $FONT_NAME Nerd Font manually..."
+        log "Downloading $FONT_NAME Nerd Font..."
         mkdir -p "$FONT_DIR"
 
         TEMP_ZIP=$(mktemp)
@@ -198,20 +257,27 @@ fi
 # 4. Independent Tools (Runs everywhere, including macOS/NixOS if applicable)
 # =============================================================================
 
-section "Installing TPM (Tmux Plugin Manager)"
-TPM_DIR="$HOME/.tmux/plugins/tpm"
-if [ ! -d "$TPM_DIR" ]; then
-    git clone https://github.com/tmux-plugins/tpm "$TPM_DIR"
-    log "TPM installed"
-else
-    warn "TPM already exists"
-fi
-
-section "Bootstrapping tmux plugins"
-tmux new-session -d -s _install 2>/dev/null || true
-sleep 1
-"$HOME/.tmux/plugins/tpm/bin/install_plugins" 2>>"$LOG_FILE" && log "Tmux plugins installed" || warn "TPM auto-install failed — open tmux and press prefix+I"
-tmux kill-session -t _install 2>/dev/null || true
+# TPM bootstrap — disabled until chezmoi has applied ~/.config/tmux/tmux.conf.
+# Uncomment after running the chezmoi block above; install_plugins is a no-op
+# unless the tmux config lists plugins for TPM to manage.
+#
+# section "Installing TPM (Tmux Plugin Manager)"
+# TPM_DIR="$HOME/.tmux/plugins/tpm"
+# if [ ! -d "$TPM_DIR" ]; then
+#     git clone https://github.com/tmux-plugins/tpm "$TPM_DIR"
+#     log "TPM installed"
+# else
+#     warn "TPM already exists"
+# fi
+#
+# section "Bootstrapping tmux plugins"
+# if [ -f "$HOME/.config/tmux/tmux.conf" ] || [ -f "$HOME/.tmux.conf" ]; then
+#     "$TPM_DIR/bin/install_plugins" 2>>"$LOG_FILE" \
+#         && log "Tmux plugins installed" \
+#         || warn "TPM auto-install failed — open tmux and press prefix+I"
+# else
+#     warn "No tmux.conf found — skipping plugin install. Re-run after chezmoi apply."
+# fi
 
 # =============================================================================
 # DONE
@@ -222,3 +288,18 @@ echo "======================================================================="
 echo " System provisioning complete!"
 echo " Log: $LOG_FILE"
 echo "======================================================================="
+
+if [ "$IS_ARCH" = true ]; then
+    cat <<'EOF'
+
+Next steps (Arch):
+  1. Ensure a 'start-hyprland' wrapper is on PATH (exports Wayland env vars
+     then exec Hyprland). Example: ~/.local/bin/start-hyprland.
+  2. Reboot. tuigreet should appear on tty1; log in to enter Hyprland.
+  3. Once the desktop is verified, uncomment the chezmoi block in this
+     script and re-run to deploy dotfiles to ~/.config.
+  4. After chezmoi apply, uncomment the TPM block and re-run to install
+     tmux plugins.
+
+EOF
+fi
