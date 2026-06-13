@@ -273,9 +273,9 @@ EOF
 
         # 2) Stop kmscon stealing tty1 from greetd.
         if systemctl list-unit-files | grep -q 'kmsconvt@'; then
-            sudo systemctl disable --now kmsconvt@tty1.service 2>/dev/null || true
+            sudo systemctl disable kmsconvt@tty1.service 2>/dev/null || true
             sudo systemctl mask kmsconvt@tty1.service
-            log "Masked kmsconvt@tty1.service so greetd owns tty1"
+            log "Disabled and masked kmsconvt@tty1.service so greetd owns tty1"
         else
             warn "kmsconvt@tty1 not present — nothing to mask (good)"
         fi
