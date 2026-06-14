@@ -131,7 +131,7 @@ elif [ -f /etc/os-release ]; then
             PKG_MANAGER="apt-get"
             INSTALL_ARGS="-y install"
 
-            PACKAGES+=("build-essential" "fd-find" "python3" "python3-pip")
+            PACKAGES+=("build-essential" "fd-find" "greetd" "python3" "python3-pip" "tuigreet")
 
             if [ "$IS_VM" = true ]; then
                 PACKAGES+=("mesa-utils" "libgl1-mesa-dri")
