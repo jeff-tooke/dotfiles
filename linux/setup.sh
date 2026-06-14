@@ -131,7 +131,7 @@ elif [ -f /etc/os-release ]; then
             PKG_MANAGER="apt-get"
             INSTALL_ARGS="-y install"
 
-            PACKAGES+=("build-essential" "fd-find" "greetd" "python3" "python3-pip" "tuigreet")
+            PACKAGES+=("build-essential" "fd-find" "greetd" "polkitd" "python3" "python3-pip" "tuigreet")
 
             if [ "$IS_VM" = true ]; then
                 PACKAGES+=("mesa-utils" "libgl1-mesa-dri" "spice-vdagent")
@@ -232,7 +232,7 @@ vt = 1
 
 [default_session]
 command = "tuigreet --time --asterisks --cmd 'zsh -l'"
-user = "greeter"
+user = "_greetd"
 EOF
     sudo systemctl enable greetd.service
     log "/etc/greetd/config.toml written; greetd.service enabled"
@@ -356,6 +356,16 @@ EOF
     else
         sudo chsh -s /usr/bin/zsh "$USER" && log "Login shell set to /usr/bin/zsh"
     fi
+
+    section "Setting up bat symlink"
+    if command -v batcat >/dev/null 2>&1; then
+
+      if [ ! -e "$HOME/.local/bin/bat" ]; then
+        ln -s "$(command -v batcat)" "$HOME/.local/bin/bat"
+        log "Created bat -> batcat symlink"
+      else
+        warn "bat symlink already present"
+    fi
 fi
 
 # =============================================================================
@@ -443,16 +453,6 @@ EOF
         warn "Login shell is already zsh"
     else
         sudo chsh -s /usr/bin/zsh "$USER" && log "Login shell set to /usr/bin/zsh"
-    fi
-
-    section "Setting up bat symlink"
-    if command -v batcat >/dev/null 2>&1; then
-
-      if [ ! -e "$HOME/.local/bin/bat" ]; then
-        ln -s "$(command -v batcat)" "$HOME/.local/bin/bat"
-        log "Created bat -> batcat symlink"
-      else
-        warn "bat symlink already present"
     fi
 fi
 
