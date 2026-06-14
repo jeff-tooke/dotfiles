@@ -527,7 +527,7 @@ fi
     #         rm -f "$TEMP_BIN"
     #     fi
     # fi
-# fi
+fi
 
 # =============================================================================
 # 5. Independent Tools (Runs everywhere, including macOS/NixOS if applicable)
