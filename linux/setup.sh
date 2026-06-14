@@ -653,11 +653,11 @@ fi
 # Chezmoi dotfiles bootstrap
 section "Applying dotfiles via chezmoi"
 if [ ! -d "$HOME/.local/share/chezmoi" ]; then
-    chezmoi init --source "$HOME/dotfiles"
+    $HOME/.local/bin/chezmoi init --source "$HOME/dotfiles"
 else
     log "chezmoi already initialised — skipping init"
 fi
-chezmoi apply --source "$HOME/dotfiles"
+$HOME/.local/bin/chezmoi apply --source "$HOME/dotfiles"
 
 # TPM bootstrap. install_plugins is a no-op unless the tmux config (applied
 # above via chezmoi) lists plugins for TPM to manage.
