@@ -67,6 +67,21 @@ RUN_STANDARD_LINUX_INSTALL=true
 IS_ARCH=false
 IS_VM=false
 
+# --- Architecture detection ------------------------------------------------
+# Normalize uname output into release-artifact form (x64 / arm64). Used by
+# any step that downloads architecture-specific binaries (opencode CLI etc.).
+# Empty $ARCH means "unsupported" — downstream steps should skip cleanly.
+case "$(uname -m)" in
+    x86_64|amd64)  ARCH="x64" ;;
+    aarch64|arm64) ARCH="arm64" ;;
+    *)             ARCH="" ;;
+esac
+if [ -n "$ARCH" ]; then
+    log "Detected architecture: $ARCH ($(uname -m))"
+else
+    warn "Unsupported architecture: $(uname -m) — arch-specific downloads will be skipped"
+fi
+
 # =============================================================================
 # 1. Detect OS and install dependencies
 # =============================================================================
@@ -337,13 +352,31 @@ if [ "$IS_ARCH" != true ] && [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
     fi
 fi
 
-# =============================================================================
-# 4. OS Tools (Runs on standard Linux distro's)
-# =============================================================================
-
+# ================================================================================
+# 4. Open source system configuration Runs on standard  (non NixOS) Linux distro's
+# ================================================================================
 
 if [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
-    section "Installing Flatpaks for user only"
+
+    section "Configure wallpapers"
+    # Resolve source relative to the script, not CWD, so the script works no
+    # matter where it is invoked from. The on-disk dir is 'wallpaper' (singular).
+    WALLPAPER_SRC="$(cd "$(dirname "$0")" && pwd)/wallpaper"
+    WALLPAPER_DST="$HOME/.local/share/wallpaper"
+
+    if [ ! -d "$WALLPAPER_SRC" ]; then
+        warn "Wallpaper source $WALLPAPER_SRC not found — skipping wallpaper copy"
+    else
+        log "Copying wallpapers from $WALLPAPER_SRC to $WALLPAPER_DST..."
+        mkdir -p "$WALLPAPER_DST"
+        if cp -r "$WALLPAPER_SRC"/. "$WALLPAPER_DST"/ 2>>"$LOG_FILE"; then
+            log "Wallpapers copied successfully"
+        else
+            warn "Failed to copy wallpapers from $WALLPAPER_SRC — continuing"
+        fi
+    fi
+
+    section "Installing applications for user only"
     FLATPAK_APPS=(
       ai.opencode.opencode
       com.bitwarden.desktop
@@ -379,6 +412,30 @@ if [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
         log "All ${#FLATPAK_APPS[@]} flatpak app(s) installed successfully"
     else
         warn "${#flatpak_failed[@]}/${#FLATPAK_APPS[@]} flatpak install(s) failed: ${flatpak_failed[*]}"
+    fi
+
+    section "Installing opencode CLI"
+    if [ -z "$ARCH" ]; then
+        warn "No supported architecture detected — skipping opencode CLI install"
+    else
+        OPENCODE_URL="https://github.com/anomalyco/opencode/releases/latest/download/opencode-linux-${ARCH}"
+        OPENCODE_DST="$HOME/.local/bin/opencode"
+        TEMP_BIN=$(mktemp)
+
+        log "Downloading opencode CLI (linux-${ARCH}) from $OPENCODE_URL..."
+        if curl -fsSL "$OPENCODE_URL" -o "$TEMP_BIN"; then
+            mkdir -p "$(dirname "$OPENCODE_DST")"
+            chmod +x "$TEMP_BIN"
+            if mv "$TEMP_BIN" "$OPENCODE_DST"; then
+                log "opencode CLI installed to $OPENCODE_DST"
+            else
+                warn "Failed to install opencode CLI to $OPENCODE_DST"
+                rm -f "$TEMP_BIN"
+            fi
+        else
+            warn "Failed to download opencode CLI from $OPENCODE_URL — skipping"
+            rm -f "$TEMP_BIN"
+        fi
     fi
 fi
 
