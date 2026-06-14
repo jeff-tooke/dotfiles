@@ -414,21 +414,55 @@ if [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
         warn "${#flatpak_failed[@]}/${#FLATPAK_APPS[@]} flatpak install(s) failed: ${flatpak_failed[*]}"
     fi
 
+# section "Installing opencode CLI"
+#
+# if [ -z "$ARCH" ]; then
+#     warn "No supported architecture detected — skipping opencode install"
+# else
+#     OC_ASSET="opencode-linux-${ARCH}.zip"     # zipped, not a bare binary
+#     OC_URL="https://github.com/anomalyco/opencode/releases/latest/download/${OC_ASSET}"
+#     OC_DST="$HOME/.local/bin/opencode"
+#
+#     tmpzip=$(mktemp --suffix=.zip)
+#     tmpdir=$(mktemp -d)
+#     log "Downloading opencode ($OC_ASSET)..."
+#     if curl -fsSL "$OC_URL" -o "$tmpzip"; then
+#         if unzip -q "$tmpzip" -d "$tmpdir"; then
+#             # binary may sit at the zip root or under a subdir — find it
+#             ocbin=$(find "$tmpdir" -type f -name opencode | head -n1)
+#             if [ -n "$ocbin" ]; then
+#                 chmod +x "$ocbin"
+#                 mkdir -p "$(dirname "$OC_DST")"
+#                 mv "$ocbin" "$OC_DST" \
+#                     && log "opencode installed to $OC_DST" \
+#                     || warn "Failed to move opencode binary to $OC_DST"
+#             else
+#                 warn "opencode binary not found inside $OC_ASSET"
+#             fi
+#         else
+#             warn "Failed to unzip $OC_ASSET — is 'unzip' installed?"
+#         fi
+#     else
+#         warn "Download failed: $OC_URL — asset name may have changed"
+#     fi
+#     rm -rf "$tmpzip" "$tmpdir"
+# fi
+
 section "Installing opencode CLI"
 
 if [ -z "$ARCH" ]; then
     warn "No supported architecture detected — skipping opencode install"
 else
-    OC_ASSET="opencode-linux-${ARCH}.zip"     # zipped, not a bare binary
+    OC_ASSET="opencode-linux-${ARCH}.tar.gz"   # tar.gz on Linux (zip is macOS-only)
     OC_URL="https://github.com/anomalyco/opencode/releases/latest/download/${OC_ASSET}"
     OC_DST="$HOME/.local/bin/opencode"
 
-    tmpzip=$(mktemp --suffix=.zip)
+    tmptar=$(mktemp --suffix=.tar.gz)
     tmpdir=$(mktemp -d)
     log "Downloading opencode ($OC_ASSET)..."
-    if curl -fsSL "$OC_URL" -o "$tmpzip"; then
-        if unzip -q "$tmpzip" -d "$tmpdir"; then
-            # binary may sit at the zip root or under a subdir — find it
+    if curl -fsSL "$OC_URL" -o "$tmptar"; then
+        if tar -xzf "$tmptar" -C "$tmpdir"; then
+            # binary may sit at the archive root or under a subdir — find it
             ocbin=$(find "$tmpdir" -type f -name opencode | head -n1)
             if [ -n "$ocbin" ]; then
                 chmod +x "$ocbin"
@@ -440,36 +474,13 @@ else
                 warn "opencode binary not found inside $OC_ASSET"
             fi
         else
-            warn "Failed to unzip $OC_ASSET — is 'unzip' installed?"
+            warn "Failed to extract $OC_ASSET"
         fi
     else
         warn "Download failed: $OC_URL — asset name may have changed"
     fi
-    rm -rf "$tmpzip" "$tmpdir"
+    rm -rf "$tmptar" "$tmpdir"
 fi
-    # section "Installing Opencode CLI"
-    # if [ -z "$ARCH" ]; then
-    #     warn "No supported architecture detected — skipping opencode CLI install"
-    # else
-    #     OPENCODE_URL="https://github.com/anomalyco/opencode/releases/latest/download/opencode-linux-${ARCH}"
-    #     OPENCODE_DST="$HOME/.local/bin/opencode"
-    #     TEMP_BIN=$(mktemp)
-    #
-    #     log "Downloading Opencode CLI (linux-${ARCH}) from $OPENCODE_URL..."
-    #     if curl -fsSL "$OPENCODE_URL" -o "$TEMP_BIN"; then
-    #         mkdir -p "$(dirname "$OPENCODE_DST")"
-    #         chmod +x "$TEMP_BIN"
-    #         if mv "$TEMP_BIN" "$OPENCODE_DST"; then
-    #             log "Opencode CLI installed to $OPENCODE_DST"
-    #         else
-    #             warn "Failed to install Opencode CLI to $OPENCODE_DST"
-    #             rm -f "$TEMP_BIN"
-    #         fi
-    #     else
-    #         warn "Failed to download Opencode CLI from $OPENCODE_URL — skipping"
-    #         rm -f "$TEMP_BIN"
-    #     fi
-    # fi
 
 section "Installing Claude Code CLI"
 
@@ -536,30 +547,7 @@ else
             fi
         fi
     fi
-fi
-    # section "Installing Claude code CLI"
-    # if [ -z "$ARCH" ]; then
-    #     warn "No supported architecture detected — skipping opencode CLI install"
-    # else
-    #     CLAUDECODE_URL="https://downloads.claude.ai/claude-code-releases/latest/linux-${ARCH}/claude"
-    #     CLAUDECODE_DST="$HOME/.local/bin/claude"
-    #     TEMP_BIN=$(mktemp)
-    #
-    #     log "Downloading Claude code CLI (linux-${ARCH}) from $CLAUDECODE_URL..."
-    #     if curl -fsSL "$CLAUDECODE_URL" -o "$TEMP_BIN"; then
-    #         mkdir -p "$(dirname "$CLAUDECODE_DST")"
-    #         chmod +x "$TEMP_BIN"
-    #         if mv "$TEMP_BIN" "$CLAUDECODE_DST"; then
-    #             log "Claude code CLI installed to $CLAUDECODE_DST"
-    #         else
-    #             warn "Failed to install Claude code CLI to $CLAUDECODE_DST"
-    #             rm -f "$TEMP_BIN"
-    #         fi
-    #     else
-    #         warn "Failed to download Claude code CLI from $CLAUDECODE_URL — skipping"
-    #         rm -f "$TEMP_BIN"
-    #     fi
-    # fi
+  fi
 fi
 
 # =============================================================================
