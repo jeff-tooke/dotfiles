@@ -414,7 +414,7 @@ if [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
         warn "${#flatpak_failed[@]}/${#FLATPAK_APPS[@]} flatpak install(s) failed: ${flatpak_failed[*]}"
     fi
 
-    section "Installing opencode CLI"
+    section "Installing Opencode CLI"
     if [ -z "$ARCH" ]; then
         warn "No supported architecture detected — skipping opencode CLI install"
     else
@@ -422,18 +422,42 @@ if [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
         OPENCODE_DST="$HOME/.local/bin/opencode"
         TEMP_BIN=$(mktemp)
 
-        log "Downloading opencode CLI (linux-${ARCH}) from $OPENCODE_URL..."
+        log "Downloading Opencode CLI (linux-${ARCH}) from $OPENCODE_URL..."
         if curl -fsSL "$OPENCODE_URL" -o "$TEMP_BIN"; then
             mkdir -p "$(dirname "$OPENCODE_DST")"
             chmod +x "$TEMP_BIN"
             if mv "$TEMP_BIN" "$OPENCODE_DST"; then
-                log "opencode CLI installed to $OPENCODE_DST"
+                log "Opencode CLI installed to $OPENCODE_DST"
             else
-                warn "Failed to install opencode CLI to $OPENCODE_DST"
+                warn "Failed to install Opencode CLI to $OPENCODE_DST"
                 rm -f "$TEMP_BIN"
             fi
         else
-            warn "Failed to download opencode CLI from $OPENCODE_URL — skipping"
+            warn "Failed to download Opencode CLI from $OPENCODE_URL — skipping"
+            rm -f "$TEMP_BIN"
+        fi
+    fi
+
+    section "Installing Claude code CLI"
+    if [ -z "$ARCH" ]; then
+        warn "No supported architecture detected — skipping opencode CLI install"
+    else
+        CLAUDECODE_URL="https://downloads.claude.ai/claude-code-releases/latest/claude-linux-${ARCH}"
+        CLAUDECODE_DST="$HOME/.local/bin/claude"
+        TEMP_BIN=$(mktemp)
+
+        log "Downloading Claude code CLI (linux-${ARCH}) from $CLAUDECODE_URL..."
+        if curl -fsSL "$CLAUDECODE_URL" -o "$TEMP_BIN"; then
+            mkdir -p "$(dirname "$CLAUDECODE_DST")"
+            chmod +x "$TEMP_BIN"
+            if mv "$TEMP_BIN" "$CLAUDECODE_DST"; then
+                log "Claude code CLI installed to $CLAUDECODE_DST"
+            else
+                warn "Failed to install Claude code CLI to $CLAUDECODE_DST"
+                rm -f "$TEMP_BIN"
+            fi
+        else
+            warn "Failed to download Claude code CLI from $CLAUDECODE_URL — skipping"
             rm -f "$TEMP_BIN"
         fi
     fi
@@ -443,27 +467,32 @@ fi
 # 5. Independent Tools (Runs everywhere, including macOS/NixOS if applicable)
 # =============================================================================
 
+# Chezmoi  dotfiles bootstrap
+section "Applying dotfiles via chezmoi"
+chezmoi init --source "$HOME/dotfiles"
+chezmoi apply --source "$HOME/dotfiles"
+
 # TPM bootstrap — disabled until chezmoi has applied ~/.config/tmux/tmux.conf.
 # Uncomment after running the chezmoi block above; install_plugins is a no-op
 # unless the tmux config lists plugins for TPM to manage.
-#
-# section "Installing TPM (Tmux Plugin Manager)"
-# TPM_DIR="$HOME/.tmux/plugins/tpm"
-# if [ ! -d "$TPM_DIR" ]; then
-#     git clone https://github.com/tmux-plugins/tpm "$TPM_DIR"
-#     log "TPM installed"
-# else
-#     warn "TPM already exists"
-# fi
-#
-# section "Bootstrapping tmux plugins"
-# if [ -f "$HOME/.config/tmux/tmux.conf" ] || [ -f "$HOME/.tmux.conf" ]; then
-#     "$TPM_DIR/bin/install_plugins" 2>>"$LOG_FILE" \
-#         && log "Tmux plugins installed" \
-#         || warn "TPM auto-install failed — open tmux and press prefix+I"
-# else
-#     warn "No tmux.conf found — skipping plugin install. Re-run after chezmoi apply."
-# fi
+
+section "Installing TPM (Tmux Plugin Manager)"
+TPM_DIR="$HOME/.tmux/plugins/tpm"
+if [ ! -d "$TPM_DIR" ]; then
+    git clone https://github.com/tmux-plugins/tpm "$TPM_DIR"
+    log "TPM installed"
+else
+    warn "TPM already exists"
+fi
+
+section "Bootstrapping tmux plugins"
+if [ -f "$HOME/.config/tmux/tmux.conf" ] || [ -f "$HOME/.tmux.conf" ]; then
+    "$TPM_DIR/bin/install_plugins" 2>>"$LOG_FILE" \
+        && log "Tmux plugins installed" \
+        || warn "TPM auto-install failed — open tmux and press prefix+I"
+else
+    warn "No tmux.conf found — skipping plugin install. Re-run after chezmoi apply."
+fi
 
 # =============================================================================
 # DONE
