@@ -134,7 +134,7 @@ elif [ -f /etc/os-release ]; then
             PACKAGES+=("build-essential" "fd-find" "greetd" "python3" "python3-pip" "tuigreet")
 
             if [ "$IS_VM" = true ]; then
-                PACKAGES+=("mesa-utils" "libgl1-mesa-dri")
+                PACKAGES+=("mesa-utils" "libgl1-mesa-dri" "spice-vdagent")
             fi
 
             IS_DEBIAN=true
@@ -150,7 +150,7 @@ elif [ -f /etc/os-release ]; then
             PACKAGES+=("python-pip")
 
             if [ "$IS_VM" = true ]; then
-                PACKAGES+=("mesa-dri-drivers" "mesa-demos")
+                PACKAGES+=("mesa-dri-drivers" "mesa-demos" "spice-vdagent")
             fi
 
             # IS_FEDORA=true
@@ -183,7 +183,7 @@ elif [ -f /etc/os-release ]; then
 
             if [ "$IS_VM" = true ]; then
                 log "VM detected — adding mesa + mesa-utils for virtio-gpu GL"
-                PACKAGES+=("mesa" "mesa-utils")
+                PACKAGES+=("mesa" "mesa-utils" "spice-vdagent")
             fi
 
             IS_ARCH=true
