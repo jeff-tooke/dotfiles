@@ -295,53 +295,58 @@ EOF
     if [ -z "$ARCH" ]; then
         warn "No supported architecture detected — skipping chezmoi install"
     else
-        # chezmoi names assets with Go's GOARCH (amd64), not the x64 your
-        # $ARCH carries — translate the one value that differs.
         case "$ARCH" in
             x64)   CZ_ARCH=amd64 ;;
             arm64) CZ_ARCH=arm64 ;;
         esac
 
         CZ_REPO="twpayne/chezmoi"
-        CZ_ASSET="chezmoi-linux-${CZ_ARCH}"
         CZ_DST="$HOME/.local/bin/chezmoi"
 
         log "Resolving latest chezmoi version..."
-        cz_version=$(curl -fsSL "https://api.github.com/repos/$CZ_REPO/releases/latest" \
-            | grep -m1 '"tag_name"' | sed -E 's/.*"v?([^"]+)".*/\1/' || true)
+        # Capture the full API response first, then parse — piping curl straight
+        # into `grep -m1` makes grep close the pipe early, which is the curl (23)
+        # "failure writing output" noise you saw.
+        cz_api=$(curl -fsSL "https://api.github.com/repos/$CZ_REPO/releases/latest" || true)
+        cz_version=$(printf '%s' "$cz_api" | grep -m1 '"tag_name"' | sed -E 's/.*"v?([^"]+)".*/\1/')
         if [[ ! "$cz_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
             warn "No valid chezmoi version from GitHub API (got: '${cz_version:0:40}') — skipping"
         else
-            log "Latest is $cz_version (linux-$CZ_ARCH)"
+            CZ_ASSET="chezmoi_${cz_version}_linux_${CZ_ARCH}.tar.gz"
             CZ_BASE="https://github.com/$CZ_REPO/releases/download/v$cz_version"
+            log "Latest is $cz_version (linux-$CZ_ARCH)"
 
-            tmp=$(mktemp)
+            tmptar=$(mktemp --suffix=.tar.gz)
+            tmpdir=$(mktemp -d)
             log "Downloading chezmoi $cz_version ($CZ_ASSET)..."
-            if ! curl -fsSL "$CZ_BASE/$CZ_ASSET" -o "$tmp"; then
+            if ! curl -fsSL "$CZ_BASE/$CZ_ASSET" -o "$tmptar"; then
                 warn "Download failed: $CZ_BASE/$CZ_ASSET — asset name may have changed — skipping"
-                rm -f "$tmp"
             else
                 # --- integrity check against signed checksums manifest ---------
                 want=$(curl -fsSL "$CZ_BASE/chezmoi_${cz_version}_checksums.txt" \
                     | awk -v f="$CZ_ASSET" '$2==f {print $1}')
-                got=$(sha256sum "$tmp" | cut -d' ' -f1)
+                got=$(sha256sum "$tmptar" | cut -d' ' -f1)
                 if [[ ! "$want" =~ ^[a-f0-9]{64}$ ]]; then
                     warn "No checksum entry for $CZ_ASSET — refusing install"
-                    rm -f "$tmp"
                 elif [ "$got" != "$want" ]; then
                     warn "Checksum mismatch — expected $want, got $got — refusing install"
-                    rm -f "$tmp"
+                elif ! tar -xzf "$tmptar" -C "$tmpdir"; then
+                    warn "Failed to extract $CZ_ASSET"
                 else
-                    chmod +x "$tmp"
-                    mkdir -p "$(dirname "$CZ_DST")"
-                    if mv "$tmp" "$CZ_DST"; then
-                        log "chezmoi installed to $CZ_DST"
+                    # binary sits at the archive root; find it to be safe
+                    czbin=$(find "$tmpdir" -type f -name chezmoi | head -n1)
+                    if [ -n "$czbin" ]; then
+                        chmod +x "$czbin"
+                        mkdir -p "$(dirname "$CZ_DST")"
+                        mv "$czbin" "$CZ_DST" \
+                            && log "chezmoi installed to $CZ_DST" \
+                            || warn "Failed to move chezmoi binary to $CZ_DST"
                     else
-                        warn "Failed to move binary to $CZ_DST"
-                        rm -f "$tmp"
+                        warn "chezmoi binary not found inside $CZ_ASSET"
                     fi
                 fi
             fi
+            rm -rf "$tmptar" "$tmpdir"
         fi
     fi
 
