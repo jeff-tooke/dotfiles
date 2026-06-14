@@ -438,30 +438,96 @@ if [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
         fi
     fi
 
-    section "Installing Claude code CLI"
-    if [ -z "$ARCH" ]; then
-        warn "No supported architecture detected — skipping opencode CLI install"
-    else
-        CLAUDECODE_URL="https://downloads.claude.ai/claude-code-releases/latest/claude-linux-${ARCH}"
-        CLAUDECODE_DST="$HOME/.local/bin/claude"
-        TEMP_BIN=$(mktemp)
+section "Installing Claude Code CLI"
 
-        log "Downloading Claude code CLI (linux-${ARCH}) from $CLAUDECODE_URL..."
-        if curl -fsSL "$CLAUDECODE_URL" -o "$TEMP_BIN"; then
-            mkdir -p "$(dirname "$CLAUDECODE_DST")"
-            chmod +x "$TEMP_BIN"
-            if mv "$TEMP_BIN" "$CLAUDECODE_DST"; then
-                log "Claude code CLI installed to $CLAUDECODE_DST"
-            else
-                warn "Failed to install Claude code CLI to $CLAUDECODE_DST"
-                rm -f "$TEMP_BIN"
-            fi
+if [ -z "$ARCH" ]; then
+    warn "No supported architecture detected — skipping Claude Code install"
+else
+    CC_BASE="https://downloads.claude.ai/claude-code-releases"
+
+    # libc-specific suffix (Arch is glibc; -musl only on Alpine et al.)
+    if ldd /bin/ls 2>&1 | grep -q musl; then
+        cc_platform="linux-${ARCH}-musl"
+    else
+        cc_platform="linux-${ARCH}"
+    fi
+
+    log "Resolving latest Claude Code version..."
+    cc_version=$(curl -fsSL "$CC_BASE/latest" || true)
+    if [[ ! "$cc_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+        warn "No valid version from $CC_BASE/latest (got: '${cc_version:0:40}') — skipping"
+    else
+        log "Latest is $cc_version ($cc_platform)"
+        manifest=$(curl -fsSL "$CC_BASE/$cc_version/manifest.json" || true)
+        want=$(printf '%s' "$manifest" | jq -r ".platforms[\"$cc_platform\"].checksum // empty")
+
+        if [[ ! "$want" =~ ^[a-f0-9]{64}$ ]]; then
+            warn "Platform $cc_platform not found in manifest — skipping"
         else
-            warn "Failed to download Claude code CLI from $CLAUDECODE_URL — skipping"
-            rm -f "$TEMP_BIN"
+            tmp=$(mktemp)
+            log "Downloading Claude Code $cc_version ($cc_platform)..."
+            if ! curl -fsSL "$CC_BASE/$cc_version/$cc_platform/claude" -o "$tmp"; then
+                warn "Download failed from $CC_BASE/$cc_version/$cc_platform/claude — skipping"
+                rm -f "$tmp"
+            else
+                # --- integrity check (runs regardless of install mode) ---------
+                got=$(sha256sum "$tmp" | cut -d' ' -f1)
+                if [ "$got" != "$want" ]; then
+                    warn "Checksum mismatch — expected $want, got $got — refusing install"
+                    rm -f "$tmp"
+                else
+                    chmod +x "$tmp"
+
+                    # === INSTALL MODE: pick ONE of the two below ===============
+
+                    # (A) Self-provisioning — place the verified binary yourself.
+                    #     Declarative, no shell integration, no managed updater.
+                    CC_DST="$HOME/.local/bin/claude"
+                    mkdir -p "$(dirname "$CC_DST")"
+                    if mv "$tmp" "$CC_DST"; then
+                        log "Claude Code installed to $CC_DST"
+                    else
+                        warn "Failed to move binary to $CC_DST"
+                        rm -f "$tmp"
+                    fi
+
+                    # (B) Official managed install — launcher + shell integration
+                    #     + vendor-expected self-update layout. Mirrors curl|bash
+                    #     minus the piping (you've already verified the binary).
+                    # "$tmp" install stable    # or: latest, or a pinned X.Y.Z
+                    # rm -f "$tmp"
+                    # log "Claude Code installed via managed installer (stable)"
+
+                    # ==========================================================
+                fi
+            fi
         fi
     fi
 fi
+    # section "Installing Claude code CLI"
+    # if [ -z "$ARCH" ]; then
+    #     warn "No supported architecture detected — skipping opencode CLI install"
+    # else
+    #     CLAUDECODE_URL="https://downloads.claude.ai/claude-code-releases/latest/linux-${ARCH}/claude"
+    #     CLAUDECODE_DST="$HOME/.local/bin/claude"
+    #     TEMP_BIN=$(mktemp)
+    #
+    #     log "Downloading Claude code CLI (linux-${ARCH}) from $CLAUDECODE_URL..."
+    #     if curl -fsSL "$CLAUDECODE_URL" -o "$TEMP_BIN"; then
+    #         mkdir -p "$(dirname "$CLAUDECODE_DST")"
+    #         chmod +x "$TEMP_BIN"
+    #         if mv "$TEMP_BIN" "$CLAUDECODE_DST"; then
+    #             log "Claude code CLI installed to $CLAUDECODE_DST"
+    #         else
+    #             warn "Failed to install Claude code CLI to $CLAUDECODE_DST"
+    #             rm -f "$TEMP_BIN"
+    #         fi
+    #     else
+    #         warn "Failed to download Claude code CLI from $CLAUDECODE_URL — skipping"
+    #         rm -f "$TEMP_BIN"
+    #     fi
+    # fi
+# fi
 
 # =============================================================================
 # 5. Independent Tools (Runs everywhere, including macOS/NixOS if applicable)
