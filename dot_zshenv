@@ -1,0 +1,19 @@
+# ~/.zshenv — read by every zsh: login, interactive, and non-interactive scripts.
+# PATH and environment only. Interactive things (aliases, prompt, keybinds)
+# stay in .zshrc / your modular *.zsh files.
+
+typeset -U path PATH          # auto-dedup; collapses any accidental duplicates
+
+# User-local binaries: claude, pip --user installs, etc.
+path=("$HOME/.local/bin" $path)
+
+# Flatpak user-exported CLI wrappers (Linux only; no-op on macOS via the guard)
+[[ -d "$HOME/.local/share/flatpak/exports/bin" ]] && \
+    path=("$HOME/.local/share/flatpak/exports/bin" $path)
+
+# Homebrew: load from whichever prefix exists on this host.
+# /opt/homebrew = Apple Silicon · /usr/local = Intel Mac · linuxbrew = Linux.
+for _brew in /opt/homebrew/bin /usr/local/bin /home/linuxbrew/.linuxbrew/bin; do
+    [[ -x "$_brew/brew" ]] && eval "$("$_brew/brew" shellenv)" && break
+done
+unset _brew
