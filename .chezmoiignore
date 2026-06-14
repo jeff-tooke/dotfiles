@@ -1,6 +1,7 @@
 # Exclude readme, setup folder and its contents
 setup/**
 README.md
+linux/**
 
 # Exclude anything backup related
 **/*backup*

@@ -70,7 +70,7 @@ hl.config({
 		disable_hyprland_logo = true,
 	},
 	input = {
-		kb_layout = "gb",
+		kb_layout = "us",
 		follow_mouse = 1,
 		sensitivity = 0,
 	},

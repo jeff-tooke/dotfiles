@@ -58,7 +58,7 @@ section() { echo -e "\n${BLUE}--- $1 ---${NC}\n" | tee -a "$LOG_FILE"; }
 
 # Define common packages for Linux
 PACKAGES=(
-    "bat" "btop" "chezmoi" "curl" "dunst" "eza" "fastfetch" "fd" "foot" "fzf" "git" "grim" "jq" "make" "neovim"
+    "alacritty" "bat" "btop" "chezmoi" "curl" "dunst" "eza" "fastfetch" "fd" "flatpak" "foot" "fzf" "git" "grim" "jq" "kitty" "make" "neovim"
     "podman" "podman-compose" "ripgrep" "slurp" "starship" "tmux" "unzip" "waybar" "wget" "wl-clipboard" "wofi" "zoxide" "zsh"
     "zsh-autosuggestions" "zsh-syntax-highlighting"
 )
@@ -118,7 +118,7 @@ elif [ -f /etc/os-release ]; then
             PACKAGES+=("python3")
             PACKAGES+=("python3-pip")
 
-           if [ "$IS_VM" = true ]; then
+            if [ "$IS_VM" = true ]; then
                 PACKAGES+=("mesa-utils" "libgl1-mesa-dri")
             fi
             ;;
@@ -142,16 +142,13 @@ elif [ -f /etc/os-release ]; then
             PKG_MANAGER="pacman"
             INSTALL_ARGS="-S --needed --noconfirm"
 
-            # Core tooling (not strictly desktop-essential, kept per user goal)
+            # Core tooling
             PACKAGES+=(
                 "base-devel" "greetd-tuigreet" "k9s" "lazydocker" "lazygit"
-                "python" "python-pip" "gnupg" "openssh"
+                "python" "python-pip" "gnupg" "openssh" "npm"
             )
 
-            # Hyprland desktop minimum set:
-            #   compositor + portals, auth agent, Qt/Wayland, audio (pipewire),
-            #   network (NetworkManager), greetd, lock/idle, wallpaper,
-            #   fonts/icons, misc desktop glue, uwsm session manager.
+            # Hyprland desktop minimal set:
             PACKAGES+=(
                 "hyprland" "hyprpaper" "hyprlock" "hypridle"
                 "xdg-desktop-portal-hyprland" "xdg-desktop-portal-gtk"
@@ -160,7 +157,7 @@ elif [ -f /etc/os-release ]; then
                 "pipewire" "pipewire-pulse" "wireplumber"
                 "networkmanager"
                 "noto-fonts" "noto-fonts-emoji" "ttf-jetbrains-mono-nerd"
-                "papirus-icon-theme"
+                "ttf-meslo-nerd" "ttf-nerd-fonts-symbols" "papirus-icon-theme"
                 "brightnessctl" "xdg-utils"
                 "uwsm"
             )
@@ -203,14 +200,11 @@ if [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
 fi
 
 # =============================================================================
-# 3. Arch-Specific Installation Block (AUR Helper)
+# 3. Arch-Specific Installation Block
 # =============================================================================
 
 if [ "$IS_ARCH" = true ]; then
 
-    # -----------------------------------------------------------------------
-    # Arch: Desktop services (greetd + NetworkManager + group membership)
-    # -----------------------------------------------------------------------
     section "Enabling NetworkManager"
     sudo systemctl enable NetworkManager.service
 
@@ -233,10 +227,8 @@ EOF
         warn "uwsm not found on PATH — package install likely failed; re-run the pacman step"
     fi
 
- if [ "$IS_VM" = true ]; then
+    if [ "$IS_VM" = true ]; then
 
-        # 1) Kernel console: make tty0 a console so the greeter renders on the
-        #    virtio-gpu display (systemd-boot type-1 entries only).
         case "$(uname -m)" in
             aarch64) SERIAL_CON="ttyAMA0" ;;
             *)       SERIAL_CON="ttyS0" ;;
@@ -303,33 +295,95 @@ EOF
 
 fi
 
-# Arch installs ttf-jetbrains-mono-nerd via pacman as part of the main package
-# list above. Debian/Fedora have no equivalent repo package, so download the
-# Nerd Font release zip manually.
+# Arch installs all required Nerd Fonts via pacman as part of the main package
+# list above. Debian/Fedora have no equivalent repo packages, so download the
+# Nerd Font release zips manually. Each name below matches the archive name
+# under https://github.com/ryanoasis/nerd-fonts/releases/latest/download/.
 if [ "$IS_ARCH" != true ] && [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
-    section "Installing JetBrainsMono Nerd Font (manual)"
-    FONT_NAME="JetBrainsMono"
-    FONT_DIR="$HOME/.local/share/fonts/$FONT_NAME"
+    section "Installing Nerd Fonts (manual)"
 
-    if [ ! -d "$FONT_DIR" ]; then
+    NERD_FONTS=("JetBrainsMono" "Meslo" "NerdFontsSymbolsOnly")
+    FONTS_INSTALLED=false
+
+    for FONT_NAME in "${NERD_FONTS[@]}"; do
+        FONT_DIR="$HOME/.local/share/fonts/$FONT_NAME"
+
+        if [ -d "$FONT_DIR" ]; then
+            warn "$FONT_NAME Nerd Font already installed in $FONT_DIR — skipping"
+            continue
+        fi
+
         log "Downloading $FONT_NAME Nerd Font..."
         mkdir -p "$FONT_DIR"
 
         TEMP_ZIP=$(mktemp)
-        curl -sSfL "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/${FONT_NAME}.zip" -o "$TEMP_ZIP"
+        if ! curl -sSfL "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/${FONT_NAME}.zip" -o "$TEMP_ZIP"; then
+            warn "Failed to download $FONT_NAME Nerd Font — skipping"
+            rm -f "$TEMP_ZIP"
+            rmdir "$FONT_DIR" 2>/dev/null || true
+            continue
+        fi
         unzip -qo "$TEMP_ZIP" -d "$FONT_DIR"
         rm -f "$TEMP_ZIP"
 
+        log "$FONT_NAME installed."
+        FONTS_INSTALLED=true
+    done
+
+    if [ "$FONTS_INSTALLED" = true ]; then
         log "Rebuilding font cache..."
         fc-cache -f > /dev/null
-        log "$FONT_NAME installed successfully."
-    else
-        warn "$FONT_NAME Nerd Font is already installed in $FONT_DIR. Skipping."
+        log "Font cache rebuilt."
     fi
 fi
 
 # =============================================================================
-# 4. Independent Tools (Runs everywhere, including macOS/NixOS if applicable)
+# 4. OS Tools (Runs on standard Linux distro's)
+# =============================================================================
+
+
+if [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
+    section "Installing Flatpaks for user only"
+    FLATPAK_APPS=(
+      ai.opencode.opencode
+      com.bitwarden.desktop
+      app.zen_browser.zen
+    )
+
+    if ! command -v flatpak &>/dev/null; then
+        err "flatpak command not found — distro package install likely failed; re-run the package step"
+    fi
+
+    log "Adding Flathub remote (user scope) if missing..."
+    if flatpak remote-list --user | grep -q '^flathub'; then
+        warn "Flathub remote already configured for $USER — skipping add"
+    else
+        flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo \
+            && log "Flathub remote added for $USER" \
+            || err "Failed to add Flathub remote"
+    fi
+
+    log "Installing ${#FLATPAK_APPS[@]} flatpak app(s): ${FLATPAK_APPS[*]}"
+    flatpak_failed=()
+    for APP in "${FLATPAK_APPS[@]}"; do
+        log "Installing flatpak: $APP..."
+        if flatpak install --user -y --non-interactive flathub "$APP" 2>>"$LOG_FILE"; then
+            log "Installed flatpak: $APP"
+        else
+            warn "Failed to install flatpak: $APP — install manually with 'flatpak install --user flathub $APP'"
+            flatpak_failed+=("$APP")
+        fi
+    done
+
+    if [ "${#flatpak_failed[@]}" -eq 0 ]; then
+        log "All ${#FLATPAK_APPS[@]} flatpak app(s) installed successfully"
+    else
+        warn "${#flatpak_failed[@]}/${#FLATPAK_APPS[@]} flatpak install(s) failed: ${flatpak_failed[*]}"
+    fi
+fi
+
+# =============================================================================
+# 5. Independent Tools (Runs everywhere, including macOS/NixOS if applicable)
 # =============================================================================
 
 # TPM bootstrap — disabled until chezmoi has applied ~/.config/tmux/tmux.conf.
