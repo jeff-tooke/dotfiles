@@ -367,7 +367,7 @@ if [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
     flatpak_failed=()
     for APP in "${FLATPAK_APPS[@]}"; do
         log "Installing flatpak: $APP..."
-        if flatpak install --user -y --non-interactive flathub "$APP" 2>>"$LOG_FILE"; then
+        if flatpak install --user -y --noninteractive flathub "$APP" 2>>"$LOG_FILE"; then
             log "Installed flatpak: $APP"
         else
             warn "Failed to install flatpak: $APP — install manually with 'flatpak install --user flathub $APP'"
