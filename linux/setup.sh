@@ -106,7 +106,7 @@ elif [ -f /etc/os-release ]; then
     . /etc/os-release
     DISTRO="${ID,,}"
 
-  # --- VM detection -------------------------------------------------------
+    # --- VM detection -------------------------------------------------------
     # systemd-detect-virt returns 0 (and prints the hypervisor) inside a guest,
     # non-zero on bare metal. Gate all guest-only steps on this so a hardware
     # install is never touched by the VM display fixes below.
@@ -352,9 +352,9 @@ if [ "$IS_ARCH" != true ] && [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
     fi
 fi
 
-# ================================================================================
-# 4. Open source system configuration Runs on standard  (non NixOS) Linux distro's
-# ================================================================================
+# =============================================================================
+# 4. Open source system configuration (Runs on standard non-NixOS Linux distros)
+# =============================================================================
 
 if [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
 
@@ -414,155 +414,117 @@ if [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
         warn "${#flatpak_failed[@]}/${#FLATPAK_APPS[@]} flatpak install(s) failed: ${flatpak_failed[*]}"
     fi
 
-# section "Installing opencode CLI"
-#
-# if [ -z "$ARCH" ]; then
-#     warn "No supported architecture detected — skipping opencode install"
-# else
-#     OC_ASSET="opencode-linux-${ARCH}.zip"     # zipped, not a bare binary
-#     OC_URL="https://github.com/anomalyco/opencode/releases/latest/download/${OC_ASSET}"
-#     OC_DST="$HOME/.local/bin/opencode"
-#
-#     tmpzip=$(mktemp --suffix=.zip)
-#     tmpdir=$(mktemp -d)
-#     log "Downloading opencode ($OC_ASSET)..."
-#     if curl -fsSL "$OC_URL" -o "$tmpzip"; then
-#         if unzip -q "$tmpzip" -d "$tmpdir"; then
-#             # binary may sit at the zip root or under a subdir — find it
-#             ocbin=$(find "$tmpdir" -type f -name opencode | head -n1)
-#             if [ -n "$ocbin" ]; then
-#                 chmod +x "$ocbin"
-#                 mkdir -p "$(dirname "$OC_DST")"
-#                 mv "$ocbin" "$OC_DST" \
-#                     && log "opencode installed to $OC_DST" \
-#                     || warn "Failed to move opencode binary to $OC_DST"
-#             else
-#                 warn "opencode binary not found inside $OC_ASSET"
-#             fi
-#         else
-#             warn "Failed to unzip $OC_ASSET — is 'unzip' installed?"
-#         fi
-#     else
-#         warn "Download failed: $OC_URL — asset name may have changed"
-#     fi
-#     rm -rf "$tmpzip" "$tmpdir"
-# fi
+    section "Installing opencode CLI"
 
-section "Installing opencode CLI"
+    if [ -z "$ARCH" ]; then
+        warn "No supported architecture detected — skipping opencode install"
+    else
+        OC_ASSET="opencode-linux-${ARCH}.tar.gz"   # tar.gz on Linux (zip is macOS-only)
+        OC_URL="https://github.com/anomalyco/opencode/releases/latest/download/${OC_ASSET}"
+        OC_DST="$HOME/.local/bin/opencode"
 
-if [ -z "$ARCH" ]; then
-    warn "No supported architecture detected — skipping opencode install"
-else
-    OC_ASSET="opencode-linux-${ARCH}.tar.gz"   # tar.gz on Linux (zip is macOS-only)
-    OC_URL="https://github.com/anomalyco/opencode/releases/latest/download/${OC_ASSET}"
-    OC_DST="$HOME/.local/bin/opencode"
-
-    tmptar=$(mktemp --suffix=.tar.gz)
-    tmpdir=$(mktemp -d)
-    log "Downloading opencode ($OC_ASSET)..."
-    if curl -fsSL "$OC_URL" -o "$tmptar"; then
-        if tar -xzf "$tmptar" -C "$tmpdir"; then
-            # binary may sit at the archive root or under a subdir — find it
-            ocbin=$(find "$tmpdir" -type f -name opencode | head -n1)
-            if [ -n "$ocbin" ]; then
-                chmod +x "$ocbin"
-                mkdir -p "$(dirname "$OC_DST")"
-                mv "$ocbin" "$OC_DST" \
-                    && log "opencode installed to $OC_DST" \
-                    || warn "Failed to move opencode binary to $OC_DST"
+        tmptar=$(mktemp --suffix=.tar.gz)
+        tmpdir=$(mktemp -d)
+        log "Downloading opencode ($OC_ASSET)..."
+        if curl -fsSL "$OC_URL" -o "$tmptar"; then
+            if tar -xzf "$tmptar" -C "$tmpdir"; then
+                # binary may sit at the archive root or under a subdir — find it
+                ocbin=$(find "$tmpdir" -type f -name opencode | head -n1)
+                if [ -n "$ocbin" ]; then
+                    chmod +x "$ocbin"
+                    mkdir -p "$(dirname "$OC_DST")"
+                    mv "$ocbin" "$OC_DST" \
+                        && log "opencode installed to $OC_DST" \
+                        || warn "Failed to move opencode binary to $OC_DST"
+                else
+                    warn "opencode binary not found inside $OC_ASSET"
+                fi
             else
-                warn "opencode binary not found inside $OC_ASSET"
+                warn "Failed to extract $OC_ASSET"
             fi
         else
-            warn "Failed to extract $OC_ASSET"
+            warn "Download failed: $OC_URL — asset name may have changed"
         fi
-    else
-        warn "Download failed: $OC_URL — asset name may have changed"
+        rm -rf "$tmptar" "$tmpdir"
     fi
-    rm -rf "$tmptar" "$tmpdir"
-fi
 
-section "Installing Claude Code CLI"
+    section "Installing Claude Code CLI"
 
-if [ -z "$ARCH" ]; then
-    warn "No supported architecture detected — skipping Claude Code install"
-else
-    CC_BASE="https://downloads.claude.ai/claude-code-releases"
-
-    # libc-specific suffix (Arch is glibc; -musl only on Alpine et al.)
-    if ldd /bin/ls 2>&1 | grep -q musl; then
-        cc_platform="linux-${ARCH}-musl"
+    if [ -z "$ARCH" ]; then
+        warn "No supported architecture detected — skipping Claude Code install"
     else
+        CC_BASE="https://downloads.claude.ai/claude-code-releases"
         cc_platform="linux-${ARCH}"
-    fi
 
-    log "Resolving latest Claude Code version..."
-    cc_version=$(curl -fsSL "$CC_BASE/latest" || true)
-    if [[ ! "$cc_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
-        warn "No valid version from $CC_BASE/latest (got: '${cc_version:0:40}') — skipping"
-    else
-        log "Latest is $cc_version ($cc_platform)"
-        manifest=$(curl -fsSL "$CC_BASE/$cc_version/manifest.json" || true)
-        want=$(printf '%s' "$manifest" | jq -r ".platforms[\"$cc_platform\"].checksum // empty")
-
-        if [[ ! "$want" =~ ^[a-f0-9]{64}$ ]]; then
-            warn "Platform $cc_platform not found in manifest — skipping"
+        log "Resolving latest Claude Code version..."
+        cc_version=$(curl -fsSL "$CC_BASE/latest" || true)
+        if [[ ! "$cc_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            warn "No valid version from $CC_BASE/latest (got: '${cc_version:0:40}') — skipping"
         else
-            tmp=$(mktemp)
-            log "Downloading Claude Code $cc_version ($cc_platform)..."
-            if ! curl -fsSL "$CC_BASE/$cc_version/$cc_platform/claude" -o "$tmp"; then
-                warn "Download failed from $CC_BASE/$cc_version/$cc_platform/claude — skipping"
-                rm -f "$tmp"
+            log "Latest is $cc_version ($cc_platform)"
+            manifest=$(curl -fsSL "$CC_BASE/$cc_version/manifest.json" || true)
+            want=$(printf '%s' "$manifest" | jq -r ".platforms[\"$cc_platform\"].checksum // empty")
+
+            if [[ ! "$want" =~ ^[a-f0-9]{64}$ ]]; then
+                warn "Platform $cc_platform not found in manifest — skipping"
             else
-                # --- integrity check (runs regardless of install mode) ---------
-                got=$(sha256sum "$tmp" | cut -d' ' -f1)
-                if [ "$got" != "$want" ]; then
-                    warn "Checksum mismatch — expected $want, got $got — refusing install"
+                tmp=$(mktemp)
+                log "Downloading Claude Code $cc_version ($cc_platform)..."
+                if ! curl -fsSL "$CC_BASE/$cc_version/$cc_platform/claude" -o "$tmp"; then
+                    warn "Download failed from $CC_BASE/$cc_version/$cc_platform/claude — skipping"
                     rm -f "$tmp"
                 else
-                    chmod +x "$tmp"
-
-                    # === INSTALL MODE: pick ONE of the two below ===============
-
-                    # (A) Self-provisioning — place the verified binary yourself.
-                    #     Declarative, no shell integration, no managed updater.
-                    CC_DST="$HOME/.local/bin/claude"
-                    mkdir -p "$(dirname "$CC_DST")"
-                    if mv "$tmp" "$CC_DST"; then
-                        log "Claude Code installed to $CC_DST"
-                    else
-                        warn "Failed to move binary to $CC_DST"
+                    # --- integrity check (runs regardless of install mode) ---------
+                    got=$(sha256sum "$tmp" | cut -d' ' -f1)
+                    if [ "$got" != "$want" ]; then
+                        warn "Checksum mismatch — expected $want, got $got — refusing install"
                         rm -f "$tmp"
+                    else
+                        chmod +x "$tmp"
+
+                        # === INSTALL MODE: pick ONE of the two below ===============
+
+                        # (A) Self-provisioning — place the verified binary yourself.
+                        #     Declarative, no shell integration, no managed updater.
+                        CC_DST="$HOME/.local/bin/claude"
+                        mkdir -p "$(dirname "$CC_DST")"
+                        if mv "$tmp" "$CC_DST"; then
+                            log "Claude Code installed to $CC_DST"
+                        else
+                            warn "Failed to move binary to $CC_DST"
+                            rm -f "$tmp"
+                        fi
+
+                        # (B) Official managed install — launcher + shell integration
+                        #     + vendor-expected self-update layout. Mirrors curl|bash
+                        #     minus the piping (you've already verified the binary).
+                        # "$tmp" install stable    # or: latest, or a pinned X.Y.Z
+                        # rm -f "$tmp"
+                        # log "Claude Code installed via managed installer (stable)"
+
+                        # ==========================================================
                     fi
-
-                    # (B) Official managed install — launcher + shell integration
-                    #     + vendor-expected self-update layout. Mirrors curl|bash
-                    #     minus the piping (you've already verified the binary).
-                    # "$tmp" install stable    # or: latest, or a pinned X.Y.Z
-                    # rm -f "$tmp"
-                    # log "Claude Code installed via managed installer (stable)"
-
-                    # ==========================================================
                 fi
             fi
         fi
     fi
-  fi
 fi
 
 # =============================================================================
 # 5. Independent Tools (Runs everywhere, including macOS/NixOS if applicable)
 # =============================================================================
 
-# Chezmoi  dotfiles bootstrap
+# Chezmoi dotfiles bootstrap
 section "Applying dotfiles via chezmoi"
-chezmoi init --source "$HOME/dotfiles"
+if [ ! -d "$HOME/.local/share/chezmoi" ]; then
+    chezmoi init --source "$HOME/dotfiles"
+else
+    log "chezmoi already initialised — skipping init"
+fi
 chezmoi apply --source "$HOME/dotfiles"
 
-# TPM bootstrap — disabled until chezmoi has applied ~/.config/tmux/tmux.conf.
-# Uncomment after running the chezmoi block above; install_plugins is a no-op
-# unless the tmux config lists plugins for TPM to manage.
-
+# TPM bootstrap. install_plugins is a no-op unless the tmux config (applied
+# above via chezmoi) lists plugins for TPM to manage.
 section "Installing TPM (Tmux Plugin Manager)"
 TPM_DIR="$HOME/.tmux/plugins/tpm"
 if [ ! -d "$TPM_DIR" ]; then
