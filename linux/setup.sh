@@ -359,12 +359,12 @@ EOF
 
     section "Setting up bat symlink"
     if command -v batcat >/dev/null 2>&1; then
-
-      if [ ! -e "$HOME/.local/bin/bat" ]; then
-        ln -s "$(command -v batcat)" "$HOME/.local/bin/bat"
-        log "Created bat -> batcat symlink"
-      else
-        warn "bat symlink already present"
+        if [ ! -e "$HOME/.local/bin/bat" ]; then
+            ln -s "$(command -v batcat)" "$HOME/.local/bin/bat"
+            log "Created bat -> batcat symlink"
+        else
+            warn "bat symlink already present"
+        fi
     fi
 fi
 
@@ -684,17 +684,3 @@ echo "======================================================================="
 echo " System provisioning complete!"
 echo " Log: $LOG_FILE"
 echo "======================================================================="
-
-if [ "$IS_ARCH" = true ]; then
-    cat <<'EOF'
-
-Next steps (Arch):
-  1. Reboot. tuigreet should appear on tty1; logging in launches Hyprland
-     via 'uwsm start hyprland.desktop' as a managed systemd user session.
-  2. Once the desktop is verified, uncomment the chezmoi block in this
-     script and re-run to deploy dotfiles to ~/.config.
-  3. After chezmoi apply, uncomment the TPM block and re-run to install
-     tmux plugins.
-
-EOF
-fi
