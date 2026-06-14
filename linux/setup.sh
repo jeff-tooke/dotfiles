@@ -65,6 +65,8 @@ PACKAGES=(
 
 RUN_STANDARD_LINUX_INSTALL=true
 IS_ARCH=false
+IS_DEBIAN=false
+IS_FEDORA=false
 IS_VM=false
 
 # --- Architecture detection ------------------------------------------------
@@ -136,6 +138,8 @@ elif [ -f /etc/os-release ]; then
             if [ "$IS_VM" = true ]; then
                 PACKAGES+=("mesa-utils" "libgl1-mesa-dri")
             fi
+
+            IS_DEBIAN=true
             ;;
 
         fedora|rhel|centos|rocky|almalinux)
@@ -150,6 +154,8 @@ elif [ -f /etc/os-release ]; then
             if [ "$IS_VM" = true ]; then
                 PACKAGES+=("mesa-dri-drivers" "mesa-demos")
             fi
+
+            IS_FEDORA=true
             ;;
 
         arch|archarm|cachyos|manjaro)
@@ -214,6 +220,86 @@ if [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
 
 fi
 
+
+# =============================================================================
+# 3. Debian-Specific Installation Block
+# =============================================================================
+
+if [ "$IS_DEBIAN" = true ]; then
+
+    section "Configuring greetd + tuigreet"
+    sudo tee /etc/greetd/config.toml >/dev/null <<'EOF'
+[terminal]
+vt = 1
+
+[default_session]
+command = "tuigreet --time --asterisks --cmd 'zsh -l'"
+user = "greeter"
+EOF
+    sudo systemctl enable greetd.service
+    log "/etc/greetd/config.toml written; greetd.service enabled"
+
+
+    if [ "$IS_VM" = true ]; then
+
+        case "$(uname -m)" in
+            aarch64) SERIAL_CON="ttyAMA0" ;;
+            *)       SERIAL_CON="ttyS0" ;;
+        esac
+
+        ENTRIES_DIR=""
+        for d in /boot/loader/entries /efi/loader/entries /boot/efi/loader/entries; do
+            if [ -d "$d" ]; then ENTRIES_DIR="$d"; break; fi
+        done
+
+        if [ -n "$ENTRIES_DIR" ]; then
+            shopt -s nullglob
+            cmdline_changed=false
+            for entry in "$ENTRIES_DIR"/*.conf; do
+                if ! grep -q '^options ' "$entry"; then continue; fi
+                if grep -q 'console=tty0' "$entry"; then
+                    warn "$(basename "$entry"): console=tty0 already set — skipping"
+                    continue
+                fi
+                sudo sed -i "/^options /s|\$| console=${SERIAL_CON} console=tty0|" "$entry"
+                log "$(basename "$entry"): appended 'console=${SERIAL_CON} console=tty0'"
+                cmdline_changed=true
+            done
+            shopt -u nullglob
+            if [ "$cmdline_changed" != true ]; then
+                warn "No type-1 systemd-boot entries with an 'options' line found (UKI/EFISTUB?)."
+                warn "Add 'console=${SERIAL_CON} console=tty0' to your kernel cmdline manually."
+            fi
+        else
+            warn "No systemd-boot entries dir found."
+            warn "GRUB: add 'console=${SERIAL_CON} console=tty0' to GRUB_CMDLINE_LINUX_DEFAULT then regenerate grub.cfg."
+            warn "UKI:  add it to /etc/kernel/cmdline then rebuild (mkinitcpio/ukify)."
+        fi
+
+        # 2) Stop kmscon stealing tty1 from greetd.
+        if systemctl list-unit-files | grep -q 'kmsconvt@'; then
+            sudo systemctl disable kmsconvt@tty1.service 2>/dev/null || true
+            sudo systemctl mask kmsconvt@tty1.service
+            log "Disabled and masked kmsconvt@tty1.service so greetd owns tty1"
+        else
+            warn "kmsconvt@tty1 not present — nothing to mask (good)"
+        fi
+    fi
+
+    section "Adding $USER to video,input groups"
+    sudo usermod -aG video,input "$USER"
+    if getent group seat &>/dev/null; then
+        sudo usermod -aG seat "$USER"
+    fi
+
+    section "Setting zsh as login shell"
+    if getent passwd "$USER" | grep -q '/zsh$'; then
+        warn "Login shell is already zsh"
+    else
+        sudo chsh -s /usr/bin/zsh "$USER" && log "Login shell set to /usr/bin/zsh"
+    fi
+fi
+
 # =============================================================================
 # 3. Arch-Specific Installation Block
 # =============================================================================
@@ -223,7 +309,7 @@ if [ "$IS_ARCH" = true ]; then
     section "Enabling NetworkManager"
     sudo systemctl enable NetworkManager.service
 
-    section "Configuring greetd + tuigreet (uwsm-managed Hyprland session)"
+    section "Configuring greetd + tuigreet"
     sudo tee /etc/greetd/config.toml >/dev/null <<'EOF'
 [terminal]
 vt = 1
@@ -300,15 +386,11 @@ EOF
     else
         sudo chsh -s /usr/bin/zsh "$USER" && log "Login shell set to /usr/bin/zsh"
     fi
-
-    # -----------------------------------------------------------------------
-    # Arch: chezmoi bootstrap (uncomment once Hyprland session is verified)
-    # -----------------------------------------------------------------------
-    # section "Applying dotfiles via chezmoi"
-    # chezmoi init --source "$HOME/.dotfiles"
-    # chezmoi apply --source "$HOME/.dotfiles"
-
 fi
+
+# =============================================================================
+# 4. Open source system configuration (Runs on standard non-NixOS Linux distros)
+# =============================================================================
 
 # Arch installs all required Nerd Fonts via pacman as part of the main package
 # list above. Debian/Fedora have no equivalent repo packages, so download the
@@ -351,10 +433,6 @@ if [ "$IS_ARCH" != true ] && [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
         log "Font cache rebuilt."
     fi
 fi
-
-# =============================================================================
-# 4. Open source system configuration (Runs on standard non-NixOS Linux distros)
-# =============================================================================
 
 if [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
 
