@@ -58,7 +58,7 @@ section() { echo -e "\n${BLUE}--- $1 ---${NC}\n" | tee -a "$LOG_FILE"; }
 
 # Define common packages for Linux
 PACKAGES=(
-    "alacritty" "bat" "btop" "chezmoi" "curl" "dunst" "eza" "fastfetch" "fd" "flatpak" "foot" "fzf" "git" "grim" "jq" "kitty" "make" "neovim"
+    "alacritty" "bat" "btop" "curl" "dunst" "eza" "fastfetch" "flatpak" "foot" "fzf" "git" "grim" "jq" "kitty" "make" "neovim"
     "podman" "podman-compose" "ripgrep" "slurp" "starship" "tmux" "unzip" "waybar" "wget" "wl-clipboard" "wofi" "zoxide" "zsh"
     "zsh-autosuggestions" "zsh-syntax-highlighting"
 )
@@ -66,7 +66,7 @@ PACKAGES=(
 RUN_STANDARD_LINUX_INSTALL=true
 IS_ARCH=false
 IS_DEBIAN=false
-IS_FEDORA=false
+# IS_FEDORA=false
 IS_VM=false
 
 # --- Architecture detection ------------------------------------------------
@@ -131,9 +131,7 @@ elif [ -f /etc/os-release ]; then
             PKG_MANAGER="apt-get"
             INSTALL_ARGS="-y install"
 
-            PACKAGES+=("build-essential")
-            PACKAGES+=("python3")
-            PACKAGES+=("python3-pip")
+            PACKAGES+=("build-essential" "fd-find" "python3" "python3-pip")
 
             if [ "$IS_VM" = true ]; then
                 PACKAGES+=("mesa-utils" "libgl1-mesa-dri")
@@ -155,7 +153,7 @@ elif [ -f /etc/os-release ]; then
                 PACKAGES+=("mesa-dri-drivers" "mesa-demos")
             fi
 
-            IS_FEDORA=true
+            # IS_FEDORA=true
             ;;
 
         arch|archarm|cachyos|manjaro)
@@ -165,7 +163,7 @@ elif [ -f /etc/os-release ]; then
 
             # Core tooling
             PACKAGES+=(
-                "base-devel" "greetd-tuigreet" "k9s" "lazydocker" "lazygit"
+                "base-devel" "chezmoi" "fd" "greetd-tuigreet" "k9s" "lazydocker" "lazygit"
                 "python" "python-pip" "gnupg" "openssh" "npm"
             )
 
@@ -290,6 +288,61 @@ EOF
     sudo usermod -aG video,input "$USER"
     if getent group seat &>/dev/null; then
         sudo usermod -aG seat "$USER"
+    fi
+
+    section "Installing chezmoi"
+
+    if [ -z "$ARCH" ]; then
+        warn "No supported architecture detected — skipping chezmoi install"
+    else
+        # chezmoi names assets with Go's GOARCH (amd64), not the x64 your
+        # $ARCH carries — translate the one value that differs.
+        case "$ARCH" in
+            x64)   CZ_ARCH=amd64 ;;
+            arm64) CZ_ARCH=arm64 ;;
+        esac
+
+        CZ_REPO="twpayne/chezmoi"
+        CZ_ASSET="chezmoi-linux-${CZ_ARCH}"
+        CZ_DST="$HOME/.local/bin/chezmoi"
+
+        log "Resolving latest chezmoi version..."
+        cz_version=$(curl -fsSL "https://api.github.com/repos/$CZ_REPO/releases/latest" \
+            | grep -m1 '"tag_name"' | sed -E 's/.*"v?([^"]+)".*/\1/' || true)
+        if [[ ! "$cz_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            warn "No valid chezmoi version from GitHub API (got: '${cz_version:0:40}') — skipping"
+        else
+            log "Latest is $cz_version (linux-$CZ_ARCH)"
+            CZ_BASE="https://github.com/$CZ_REPO/releases/download/v$cz_version"
+
+            tmp=$(mktemp)
+            log "Downloading chezmoi $cz_version ($CZ_ASSET)..."
+            if ! curl -fsSL "$CZ_BASE/$CZ_ASSET" -o "$tmp"; then
+                warn "Download failed: $CZ_BASE/$CZ_ASSET — asset name may have changed — skipping"
+                rm -f "$tmp"
+            else
+                # --- integrity check against signed checksums manifest ---------
+                want=$(curl -fsSL "$CZ_BASE/chezmoi_${cz_version}_checksums.txt" \
+                    | awk -v f="$CZ_ASSET" '$2==f {print $1}')
+                got=$(sha256sum "$tmp" | cut -d' ' -f1)
+                if [[ ! "$want" =~ ^[a-f0-9]{64}$ ]]; then
+                    warn "No checksum entry for $CZ_ASSET — refusing install"
+                    rm -f "$tmp"
+                elif [ "$got" != "$want" ]; then
+                    warn "Checksum mismatch — expected $want, got $got — refusing install"
+                    rm -f "$tmp"
+                else
+                    chmod +x "$tmp"
+                    mkdir -p "$(dirname "$CZ_DST")"
+                    if mv "$tmp" "$CZ_DST"; then
+                        log "chezmoi installed to $CZ_DST"
+                    else
+                        warn "Failed to move binary to $CZ_DST"
+                        rm -f "$tmp"
+                    fi
+                fi
+            fi
+        fi
     fi
 
     section "Setting zsh as login shell"
