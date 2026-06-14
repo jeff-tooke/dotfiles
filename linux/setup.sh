@@ -444,6 +444,16 @@ EOF
     else
         sudo chsh -s /usr/bin/zsh "$USER" && log "Login shell set to /usr/bin/zsh"
     fi
+
+    section "Setting up bat symlink"
+    if command -v batcat >/dev/null 2>&1; then
+
+      if [ ! -e "$HOME/.local/bin/bat" ]; then
+        ln -s "$(command -v batcat)" "$HOME/.local/bin/bat"
+        log "Created bat -> batcat symlink"
+      else
+        warn "bat symlink already present"
+    fi
 fi
 
 # =============================================================================
@@ -610,7 +620,6 @@ if [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
                     warn "Download failed from $CC_BASE/$cc_version/$cc_platform/claude — skipping"
                     rm -f "$tmp"
                 else
-                    # --- integrity check (runs regardless of install mode) ---------
                     got=$(sha256sum "$tmp" | cut -d' ' -f1)
                     if [ "$got" != "$want" ]; then
                         warn "Checksum mismatch — expected $want, got $got — refusing install"
@@ -618,10 +627,6 @@ if [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
                     else
                         chmod +x "$tmp"
 
-                        # === INSTALL MODE: pick ONE of the two below ===============
-
-                        # (A) Self-provisioning — place the verified binary yourself.
-                        #     Declarative, no shell integration, no managed updater.
                         CC_DST="$HOME/.local/bin/claude"
                         mkdir -p "$(dirname "$CC_DST")"
                         if mv "$tmp" "$CC_DST"; then
@@ -630,15 +635,6 @@ if [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
                             warn "Failed to move binary to $CC_DST"
                             rm -f "$tmp"
                         fi
-
-                        # (B) Official managed install — launcher + shell integration
-                        #     + vendor-expected self-update layout. Mirrors curl|bash
-                        #     minus the piping (you've already verified the binary).
-                        # "$tmp" install stable    # or: latest, or a pinned X.Y.Z
-                        # rm -f "$tmp"
-                        # log "Claude Code installed via managed installer (stable)"
-
-                        # ==========================================================
                     fi
                 fi
             fi
