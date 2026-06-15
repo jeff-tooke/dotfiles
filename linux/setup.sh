@@ -481,6 +481,121 @@ EOF
 fi
 
 # =============================================================================
+# 3.c Fedora-Specific Installation Block
+# =============================================================================
+
+if [ "$IS_FEDORA" = true ]; then
+
+    section "Enabling NetworkManager"
+    # NetworkManager is enabled by Fedora's default preset, but `systemctl
+    # enable` is idempotent — re-running is harmless.
+    sudo systemctl enable NetworkManager.service
+
+    section "Checking SELinux status"
+    # Fedora ships SELinux enforcing by default. greetd + uwsm + hyprland
+    # (third-party COPR) is a combination that can hit AVC denials on first
+    # login. We don't auto-flip the mode — just leave the user a breadcrumb.
+    if command -v getenforce &>/dev/null; then
+        case "$(getenforce 2>/dev/null)" in
+            Enforcing)
+                warn "SELinux is enforcing — greetd/uwsm/hyprland may hit AVC denials on first login"
+                warn "If login fails, try 'sudo setenforce 0' first, then inspect /var/log/audit/audit.log"
+                warn "Permanent: set SELINUX=permissive in /etc/selinux/config"
+                ;;
+            Permissive) log "SELinux is permissive" ;;
+            Disabled)   log "SELinux is disabled" ;;
+        esac
+    else
+        log "SELinux tools not present — assuming not in use"
+    fi
+
+    section "Configuring greetd + tuigreet"
+    sudo tee /etc/greetd/config.toml >/dev/null <<'EOF'
+[terminal]
+vt = 1
+
+[default_session]
+command = "tuigreet --time --remember --remember-session --asterisks --cmd 'uwsm start hyprland.desktop'"
+user = "greeter"
+EOF
+    sudo systemctl enable greetd.service
+    log "/etc/greetd/config.toml written; greetd.service enabled"
+
+    if [ ! -f /usr/share/wayland-sessions/hyprland.desktop ]; then
+        warn "No /usr/share/wayland-sessions/hyprland.desktop — uwsm needs this session file (shipped by the hyprland package)"
+    fi
+    if ! command -v uwsm &>/dev/null; then
+        warn "uwsm not found on PATH — package install likely failed; re-run the dnf step"
+    fi
+
+    if [ "$IS_VM" = true ]; then
+
+        case "$(uname -m)" in
+            aarch64) SERIAL_CON="ttyAMA0" ;;
+            *)       SERIAL_CON="ttyS0" ;;
+        esac
+
+        # Fedora defaults to GRUB, so the systemd-boot entries search will
+        # usually fall through to the GRUB warn-branch below — that is the
+        # correct outcome on a stock Fedora install.
+        ENTRIES_DIR=""
+        for d in /boot/loader/entries /efi/loader/entries /boot/efi/loader/entries; do
+            if [ -d "$d" ]; then ENTRIES_DIR="$d"; break; fi
+        done
+
+        if [ -n "$ENTRIES_DIR" ]; then
+            shopt -s nullglob
+            cmdline_changed=false
+            for entry in "$ENTRIES_DIR"/*.conf; do
+                if ! grep -q '^options ' "$entry"; then continue; fi
+                if grep -q 'console=tty0' "$entry"; then
+                    warn "$(basename "$entry"): console=tty0 already set — skipping"
+                    continue
+                fi
+                sudo sed -i "/^options /s|\$| console=${SERIAL_CON} console=tty0|" "$entry"
+                log "$(basename "$entry"): appended 'console=${SERIAL_CON} console=tty0'"
+                cmdline_changed=true
+            done
+            shopt -u nullglob
+            if [ "$cmdline_changed" != true ]; then
+                warn "No type-1 systemd-boot entries with an 'options' line found (UKI/EFISTUB?)."
+                warn "Add 'console=${SERIAL_CON} console=tty0' to your kernel cmdline manually."
+            fi
+        else
+            warn "No systemd-boot entries dir found (expected on stock Fedora — uses GRUB)."
+            warn "GRUB: add 'console=${SERIAL_CON} console=tty0' to GRUB_CMDLINE_LINUX_DEFAULT in /etc/default/grub,"
+            warn "      then: sudo grub2-mkconfig -o /boot/grub2/grub.cfg"
+        fi
+
+        # Stop kmscon stealing tty1 from greetd. Fedora doesn't ship kmscon
+        # by default, but check anyway in case it was installed.
+        if systemctl list-unit-files | grep -q 'kmsconvt@'; then
+            sudo systemctl disable kmsconvt@tty1.service 2>/dev/null || true
+            sudo systemctl mask kmsconvt@tty1.service
+            log "Disabled and masked kmsconvt@tty1.service so greetd owns tty1"
+        else
+            warn "kmsconvt@tty1 not present — nothing to mask"
+        fi
+    fi
+
+    section "Adding $USER to video,input groups"
+    sudo usermod -aG video,input "$USER"
+    if getent group seat &>/dev/null; then
+        sudo usermod -aG seat "$USER"
+    fi
+
+    section "Setting zsh as login shell"
+    if getent passwd "$USER" | grep -q '/zsh$'; then
+        warn "Login shell is already zsh"
+    else
+        sudo chsh -s /usr/bin/zsh "$USER" && log "Login shell set to /usr/bin/zsh"
+    fi
+
+    # Fedora ships `bat` as /usr/bin/bat directly — no batcat rename, no
+    # symlink needed (unlike Debian which renames to avoid a binary clash).
+fi
+
+# =============================================================================
 # 4. Open source system configuration (Runs on standard non-NixOS Linux distros)
 # =============================================================================
 
