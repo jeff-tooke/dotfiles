@@ -66,7 +66,7 @@ PACKAGES=(
 RUN_STANDARD_LINUX_INSTALL=true
 IS_ARCH=false
 IS_DEBIAN=false
-# IS_FEDORA=false
+IS_FEDORA=false
 IS_VM=false
 
 # --- Architecture detection ------------------------------------------------
@@ -131,7 +131,7 @@ elif [ -f /etc/os-release ]; then
             PKG_MANAGER="apt-get"
             INSTALL_ARGS="-y install"
 
-            PACKAGES+=("build-essential" "fd-find" "greetd" "polkitd" "python3" "python3-pip" "tuigreet")
+            PACKAGES+=("build-essential" "fd-find" "greetd" "npm" "python3" "python3-pip" "tuigreet")
 
             if [ "$IS_VM" = true ]; then
                 PACKAGES+=("mesa-utils" "libgl1-mesa-dri" "spice-vdagent")
@@ -145,15 +145,37 @@ elif [ -f /etc/os-release ]; then
             PKG_MANAGER="dnf"
             INSTALL_ARGS="-y install"
 
-            PACKAGES+=("@Development Tools")
-            PACKAGES+=("python")
-            PACKAGES+=("python-pip")
+            PACKAGES+=("@Development Tools" "chezmoi" "fd-find" "greetd" "nodejs24-npm" "python" "python-pip" "tuigreet")
 
             if [ "$IS_VM" = true ]; then
                 PACKAGES+=("mesa-dri-drivers" "mesa-demos" "spice-vdagent")
             fi
 
-            # IS_FEDORA=true
+            # Hyprland is not in Fedora base repos. lionheartp/Hyprland COPR
+            # provides it, but only builds for Fedora 43+ (and rawhide).
+            # COPR is Fedora-only — skip on RHEL/CentOS clones.
+            if [ "$DISTRO" = "fedora" ] && [ "${VERSION_ID%%.*}" -ge 43 ] 2>/dev/null; then
+                log "Enabling lionheartp/Hyprland COPR..."
+                sudo dnf -y install dnf-plugins-core
+                sudo dnf -y copr enable lionheartp/Hyprland
+
+                PACKAGES+=(
+                    "hyprland" "hyprpaper" "hyprlock" "hypridle"
+                    "xdg-desktop-portal-hyprland" "xdg-desktop-portal-gtk"
+                    "polkit" "polkit-gnome"
+                    "qt5-qtwayland" "qt6-qtwayland" "gtk3" "gtk4"
+                    "pipewire" "pipewire-pulseaudio" "wireplumber"
+                    "NetworkManager"
+                    "google-noto-sans-fonts" "google-noto-emoji-fonts"
+                    "jetbrains-mono-fonts" "papirus-icon-theme"
+                    "brightnessctl" "xdg-utils"
+                    "uwsm"
+                )
+            elif [ "$DISTRO" = "fedora" ]; then
+                warn "Fedora ${VERSION_ID:-?} is older than 43 — lionheartp/Hyprland COPR has no build for this release; Hyprland packages will not be installed"
+            fi
+
+            IS_FEDORA=true
             ;;
 
         arch|archarm|cachyos|manjaro)
@@ -280,7 +302,7 @@ EOF
             sudo systemctl mask kmsconvt@tty1.service
             log "Disabled and masked kmsconvt@tty1.service so greetd owns tty1"
         else
-            warn "kmsconvt@tty1 not present — nothing to mask (good)"
+            warn "kmsconvt@tty1 not present — nothing to mask"
         fi
     fi
 
@@ -292,7 +314,9 @@ EOF
 
     section "Installing chezmoi"
 
-    if [ -z "$ARCH" ]; then
+    if command -v chezmoi >/dev/null 2>&1; then
+        warn "chezmoi already on PATH at $(command -v chezmoi) — skipping"
+    elif [ -z "$ARCH" ]; then
         warn "No supported architecture detected — skipping chezmoi install"
     else
         case "$ARCH" in
@@ -562,7 +586,9 @@ if [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
 
     section "Installing opencode CLI"
 
-    if [ -z "$ARCH" ]; then
+    if command -v opencode >/dev/null 2>&1; then
+        warn "opencode already on PATH at $(command -v opencode) — skipping"
+    elif [ -z "$ARCH" ]; then
         warn "No supported architecture detected — skipping opencode install"
     else
         OC_ASSET="opencode-linux-${ARCH}.tar.gz"   # tar.gz on Linux (zip is macOS-only)
@@ -596,7 +622,9 @@ if [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
 
     section "Installing Claude Code CLI"
 
-    if [ -z "$ARCH" ]; then
+    if command -v claude >/dev/null 2>&1; then
+        warn "claude already on PATH at $(command -v claude) — skipping"
+    elif [ -z "$ARCH" ]; then
         warn "No supported architecture detected — skipping Claude Code install"
     else
         CC_BASE="https://downloads.claude.ai/claude-code-releases"
