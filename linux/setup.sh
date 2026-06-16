@@ -625,6 +625,14 @@ EOF
     sudo systemctl enable greetd.service
     log "/etc/greetd/config.toml written; greetd.service enabled"
 
+    current_target="$(systemctl get-default)"
+    if [ "$current_target" = "graphical.target"]; then
+      log "Default target already graphical.target"
+    else
+      sudo systemctl set-default graphical.target
+      log "Default target set to graphical.target ( was $current_target)"
+    fi
+
     if [ ! -f /usr/share/wayland-sessions/hyprland.desktop ]; then
         warn "No /usr/share/wayland-sessions/hyprland.desktop — uwsm needs this session file (shipped by the hyprland package)"
     fi
