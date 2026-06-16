@@ -56,6 +56,107 @@ warn() { echo -e "${YELLOW}[!]${NC} $1" | tee -a "$LOG_FILE"; }
 err() { echo -e "${RED}[x]${NC} $1" | tee -a "$LOG_FILE"; exit 1; }
 section() { echo -e "\n${BLUE}--- $1 ---${NC}\n" | tee -a "$LOG_FILE"; }
 
+# install_release_binary <name> <url> <dst> [archive_type] [expected_sha256]
+#
+# Generic "download release artefact, optional sha256-verify, extract if
+# archive, move to dst" helper shared by the chezmoi / opencode / claude /
+# starship install steps. Per-tool variation (version resolution, checksum
+# lookup, arch-string mapping) stays in the caller; this function only owns
+# the common download → verify → extract → install pipeline.
+#
+#   archive_type    "tar.gz" (default) — extract first, find binary inside
+#                   "binary"           — single executable, no extraction
+#   expected_sha256 optional 64-char hex digest; verified before extract.
+#                   Empty means "no checksum available" — the helper warns
+#                   loudly so the unverified install is visible in the log.
+#
+# Returns 0 on success or no-op (binary already on PATH), non-zero on any
+# real failure so the caller can decide whether to bail or continue.
+install_release_binary() {
+    local name="$1"
+    local url="$2"
+    local dst="$3"
+    local archive_type="${4:-tar.gz}"
+    local expected_sha256="${5:-}"
+
+    if command -v "$name" >/dev/null 2>&1; then
+        warn "$name already on PATH at $(command -v "$name") — skipping"
+        return 0
+    fi
+
+    local tmp tmpdir bin got
+    tmp=$(mktemp)
+    log "Downloading $name from $url..."
+    if ! curl -fsSL "$url" -o "$tmp"; then
+        warn "Download failed: $url — skipping $name"
+        rm -f "$tmp"
+        return 1
+    fi
+
+    if [ -z "$expected_sha256" ]; then
+        warn "$name installing without checksum verification (upstream publishes none)"
+    else
+        if [[ ! "$expected_sha256" =~ ^[a-f0-9]{64}$ ]]; then
+            warn "Invalid expected sha256 for $name (got: '${expected_sha256:0:40}') — refusing install"
+            rm -f "$tmp"
+            return 1
+        fi
+        got=$(sha256sum "$tmp" | cut -d' ' -f1)
+        if [ "$got" != "$expected_sha256" ]; then
+            warn "$name checksum mismatch — expected $expected_sha256, got $got — refusing install"
+            rm -f "$tmp"
+            return 1
+        fi
+    fi
+
+    mkdir -p "$(dirname "$dst")"
+
+    case "$archive_type" in
+        binary)
+            chmod +x "$tmp"
+            if mv "$tmp" "$dst"; then
+                log "$name installed to $dst"
+                return 0
+            else
+                warn "Failed to move $name binary to $dst"
+                rm -f "$tmp"
+                return 1
+            fi
+            ;;
+        tar.gz)
+            tmpdir=$(mktemp -d)
+            if ! tar -xzf "$tmp" -C "$tmpdir"; then
+                warn "Failed to extract $name archive"
+                rm -rf "$tmp" "$tmpdir"
+                return 1
+            fi
+            # Binary usually sits at the archive root, but some projects nest
+            # it under a versioned dir — find by name to be safe.
+            bin=$(find "$tmpdir" -type f -name "$name" | head -n1)
+            if [ -z "$bin" ]; then
+                warn "$name binary not found inside archive"
+                rm -rf "$tmp" "$tmpdir"
+                return 1
+            fi
+            chmod +x "$bin"
+            if mv "$bin" "$dst"; then
+                log "$name installed to $dst"
+                rm -rf "$tmp" "$tmpdir"
+                return 0
+            else
+                warn "Failed to move $name binary to $dst"
+                rm -rf "$tmp" "$tmpdir"
+                return 1
+            fi
+            ;;
+        *)
+            warn "install_release_binary: unknown archive_type '$archive_type' for $name"
+            rm -f "$tmp"
+            return 1
+            ;;
+    esac
+}
+
 # Define common packages for Linux
 # starship intentionally excluded — only Arch packages it; Debian/Fedora get it
 # via a release-binary install in a later step.
@@ -133,7 +234,7 @@ elif [ -f /etc/os-release ]; then
             PKG_MANAGER="apt-get"
             INSTALL_ARGS="-y install"
 
-            PACKAGES+=("build-essential" "fd-find" "greetd" "npm" "python3" "python3-pip" "tuigreet")
+            PACKAGES+=("build-essential" "fd-find" "greetd" "npm" "python3" "python3-pip" "starship" "tuigreet")
 
             if [ "$IS_VM" = true ]; then
                 PACKAGES+=("mesa-utils" "libgl1-mesa-dri" "spice-vdagent")
@@ -339,9 +440,7 @@ EOF
 
     section "Installing chezmoi"
 
-    if command -v chezmoi >/dev/null 2>&1; then
-        warn "chezmoi already on PATH at $(command -v chezmoi) — skipping"
-    elif [ -z "$ARCH" ]; then
+    if [ -z "$ARCH" ]; then
         warn "No supported architecture detected — skipping chezmoi install"
     else
         case "$ARCH" in
@@ -349,53 +448,29 @@ EOF
             arm64) CZ_ARCH=arm64 ;;
         esac
 
-        CZ_REPO="twpayne/chezmoi"
-        CZ_DST="$HOME/.local/bin/chezmoi"
-
         log "Resolving latest chezmoi version..."
         # Capture the full API response first, then parse — piping curl straight
         # into `grep -m1` makes grep close the pipe early, which is the curl (23)
-        # "failure writing output" noise you saw.
-        cz_api=$(curl -fsSL "https://api.github.com/repos/$CZ_REPO/releases/latest" || true)
+        # "failure writing output" noise.
+        cz_api=$(curl -fsSL "https://api.github.com/repos/twpayne/chezmoi/releases/latest" || true)
         cz_version=$(printf '%s' "$cz_api" | grep -m1 '"tag_name"' | sed -E 's/.*"v?([^"]+)".*/\1/')
         if [[ ! "$cz_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
             warn "No valid chezmoi version from GitHub API (got: '${cz_version:0:40}') — skipping"
         else
-            CZ_ASSET="chezmoi_${cz_version}_linux_${CZ_ARCH}.tar.gz"
-            CZ_BASE="https://github.com/$CZ_REPO/releases/download/v$cz_version"
-            log "Latest is $cz_version (linux-$CZ_ARCH)"
+            cz_asset="chezmoi_${cz_version}_linux_${CZ_ARCH}.tar.gz"
+            cz_base="https://github.com/twpayne/chezmoi/releases/download/v$cz_version"
+            log "Latest chezmoi is $cz_version (linux-$CZ_ARCH)"
 
-            tmptar=$(mktemp --suffix=.tar.gz)
-            tmpdir=$(mktemp -d)
-            log "Downloading chezmoi $cz_version ($CZ_ASSET)..."
-            if ! curl -fsSL "$CZ_BASE/$CZ_ASSET" -o "$tmptar"; then
-                warn "Download failed: $CZ_BASE/$CZ_ASSET — asset name may have changed — skipping"
-            else
-                # --- integrity check against signed checksums manifest ---------
-                want=$(curl -fsSL "$CZ_BASE/chezmoi_${cz_version}_checksums.txt" \
-                    | awk -v f="$CZ_ASSET" '$2==f {print $1}')
-                got=$(sha256sum "$tmptar" | cut -d' ' -f1)
-                if [[ ! "$want" =~ ^[a-f0-9]{64}$ ]]; then
-                    warn "No checksum entry for $CZ_ASSET — refusing install"
-                elif [ "$got" != "$want" ]; then
-                    warn "Checksum mismatch — expected $want, got $got — refusing install"
-                elif ! tar -xzf "$tmptar" -C "$tmpdir"; then
-                    warn "Failed to extract $CZ_ASSET"
-                else
-                    # binary sits at the archive root; find it to be safe
-                    czbin=$(find "$tmpdir" -type f -name chezmoi | head -n1)
-                    if [ -n "$czbin" ]; then
-                        chmod +x "$czbin"
-                        mkdir -p "$(dirname "$CZ_DST")"
-                        mv "$czbin" "$CZ_DST" \
-                            && log "chezmoi installed to $CZ_DST" \
-                            || warn "Failed to move chezmoi binary to $CZ_DST"
-                    else
-                        warn "chezmoi binary not found inside $CZ_ASSET"
-                    fi
-                fi
-            fi
-            rm -rf "$tmptar" "$tmpdir"
+            # Pull the digest for our specific asset out of the signed
+            # checksums manifest. Empty result → helper refuses to install.
+            cz_sha=$(curl -fsSL "$cz_base/chezmoi_${cz_version}_checksums.txt" \
+                | awk -v f="$cz_asset" '$2==f {print $1}')
+
+            install_release_binary "chezmoi" \
+                "$cz_base/$cz_asset" \
+                "$HOME/.local/bin/chezmoi" \
+                "tar.gz" \
+                "$cz_sha"
         fi
     fi
 
@@ -535,13 +610,17 @@ if [ "$IS_FEDORA" = true ]; then
     fi
 
     section "Configuring greetd + tuigreet"
+    # The Fedora greetd package creates a system user named `greetd`
+    # (not `greeter` like Arch's package does). Using the wrong user name
+    # here makes greetd.service start, fail to drop privileges, then exit
+    # — visible as "active (running)" briefly, then "inactive (dead)".
     sudo tee /etc/greetd/config.toml >/dev/null <<'EOF'
 [terminal]
 vt = 1
 
 [default_session]
 command = "tuigreet --time --remember --remember-session --asterisks --cmd 'uwsm start hyprland.desktop'"
-user = "greeter"
+user = "greetd"
 EOF
     sudo systemctl enable greetd.service
     log "/etc/greetd/config.toml written; greetd.service enabled"
@@ -726,86 +805,77 @@ if [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
 
     section "Installing opencode CLI"
 
-    if command -v opencode >/dev/null 2>&1; then
-        warn "opencode already on PATH at $(command -v opencode) — skipping"
-    elif [ -z "$ARCH" ]; then
+    if [ -z "$ARCH" ]; then
         warn "No supported architecture detected — skipping opencode install"
     else
-        OC_ASSET="opencode-linux-${ARCH}.tar.gz"   # tar.gz on Linux (zip is macOS-only)
-        OC_URL="https://github.com/anomalyco/opencode/releases/latest/download/${OC_ASSET}"
-        OC_DST="$HOME/.local/bin/opencode"
-
-        tmptar=$(mktemp --suffix=.tar.gz)
-        tmpdir=$(mktemp -d)
-        log "Downloading opencode ($OC_ASSET)..."
-        if curl -fsSL "$OC_URL" -o "$tmptar"; then
-            if tar -xzf "$tmptar" -C "$tmpdir"; then
-                # binary may sit at the archive root or under a subdir — find it
-                ocbin=$(find "$tmpdir" -type f -name opencode | head -n1)
-                if [ -n "$ocbin" ]; then
-                    chmod +x "$ocbin"
-                    mkdir -p "$(dirname "$OC_DST")"
-                    mv "$ocbin" "$OC_DST" \
-                        && log "opencode installed to $OC_DST" \
-                        || warn "Failed to move opencode binary to $OC_DST"
-                else
-                    warn "opencode binary not found inside $OC_ASSET"
-                fi
-            else
-                warn "Failed to extract $OC_ASSET"
-            fi
-        else
-            warn "Download failed: $OC_URL — asset name may have changed"
-        fi
-        rm -rf "$tmptar" "$tmpdir"
+        # opencode publishes /latest/download/ URLs but no signed checksums
+        # file alongside the release artefacts. The helper will warn loudly
+        # about the unverified install rather than silently shipping the bytes.
+        install_release_binary "opencode" \
+            "https://github.com/anomalyco/opencode/releases/latest/download/opencode-linux-${ARCH}.tar.gz" \
+            "$HOME/.local/bin/opencode" \
+            "tar.gz"
     fi
 
     section "Installing Claude Code CLI"
 
-    if command -v claude >/dev/null 2>&1; then
-        warn "claude already on PATH at $(command -v claude) — skipping"
-    elif [ -z "$ARCH" ]; then
+    if [ -z "$ARCH" ]; then
         warn "No supported architecture detected — skipping Claude Code install"
     else
-        CC_BASE="https://downloads.claude.ai/claude-code-releases"
+        cc_base="https://downloads.claude.ai/claude-code-releases"
         cc_platform="linux-${ARCH}"
 
         log "Resolving latest Claude Code version..."
-        cc_version=$(curl -fsSL "$CC_BASE/latest" || true)
+        cc_version=$(curl -fsSL "$cc_base/latest" || true)
         if [[ ! "$cc_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
-            warn "No valid version from $CC_BASE/latest (got: '${cc_version:0:40}') — skipping"
+            warn "No valid version from $cc_base/latest (got: '${cc_version:0:40}') — skipping"
         else
-            log "Latest is $cc_version ($cc_platform)"
-            manifest=$(curl -fsSL "$CC_BASE/$cc_version/manifest.json" || true)
-            want=$(printf '%s' "$manifest" | jq -r ".platforms[\"$cc_platform\"].checksum // empty")
+            log "Latest Claude Code is $cc_version ($cc_platform)"
+            cc_manifest=$(curl -fsSL "$cc_base/$cc_version/manifest.json" || true)
+            cc_sha=$(printf '%s' "$cc_manifest" | jq -r ".platforms[\"$cc_platform\"].checksum // empty")
 
-            if [[ ! "$want" =~ ^[a-f0-9]{64}$ ]]; then
-                warn "Platform $cc_platform not found in manifest — skipping"
-            else
-                tmp=$(mktemp)
-                log "Downloading Claude Code $cc_version ($cc_platform)..."
-                if ! curl -fsSL "$CC_BASE/$cc_version/$cc_platform/claude" -o "$tmp"; then
-                    warn "Download failed from $CC_BASE/$cc_version/$cc_platform/claude — skipping"
-                    rm -f "$tmp"
-                else
-                    got=$(sha256sum "$tmp" | cut -d' ' -f1)
-                    if [ "$got" != "$want" ]; then
-                        warn "Checksum mismatch — expected $want, got $got — refusing install"
-                        rm -f "$tmp"
-                    else
-                        chmod +x "$tmp"
+            # Claude ships as a single executable, not a tarball — pass the
+            # "binary" archive_type so the helper skips extraction.
+            install_release_binary "claude" \
+                "$cc_base/$cc_version/$cc_platform/claude" \
+                "$HOME/.local/bin/claude" \
+                "binary" \
+                "$cc_sha"
+        fi
+    fi
 
-                        CC_DST="$HOME/.local/bin/claude"
-                        mkdir -p "$(dirname "$CC_DST")"
-                        if mv "$tmp" "$CC_DST"; then
-                            log "Claude Code installed to $CC_DST"
-                        else
-                            warn "Failed to move binary to $CC_DST"
-                            rm -f "$tmp"
-                        fi
-                    fi
-                fi
-            fi
+    section "Installing starship prompt"
+
+    # No-op on Arch (pacman) and Debian (apt) where starship is in repos —
+    # the helper's command -v check short-circuits. Fedora repos lack it, so
+    # this is where Fedora actually fetches the release tarball.
+    if [ -z "$ARCH" ]; then
+        warn "No supported architecture detected — skipping starship install"
+    else
+        case "$ARCH" in
+            x64)   ss_target="x86_64-unknown-linux-gnu" ;;
+            arm64) ss_target="aarch64-unknown-linux-musl" ;;
+        esac
+
+        log "Resolving latest starship version..."
+        ss_api=$(curl -fsSL "https://api.github.com/repos/starship/starship/releases/latest" || true)
+        ss_version=$(printf '%s' "$ss_api" | grep -m1 '"tag_name"' | sed -E 's/.*"v?([^"]+)".*/\1/')
+        if [[ ! "$ss_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            warn "No valid starship version from GitHub API (got: '${ss_version:0:40}') — skipping"
+        else
+            ss_asset="starship-${ss_target}.tar.gz"
+            ss_base="https://github.com/starship/starship/releases/download/v$ss_version"
+            log "Latest starship is $ss_version ($ss_target)"
+
+            # starship publishes a per-asset .sha256 sidecar file. Its content
+            # is "<digest>  <filename>\n", so extract just the digest.
+            ss_sha=$(curl -fsSL "$ss_base/$ss_asset.sha256" 2>/dev/null | awk '{print $1}')
+
+            install_release_binary "starship" \
+                "$ss_base/$ss_asset" \
+                "$HOME/.local/bin/starship" \
+                "tar.gz" \
+                "$ss_sha"
         fi
     fi
 fi
