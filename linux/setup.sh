@@ -625,20 +625,6 @@ EOF
     sudo systemctl enable greetd.service
     log "/etc/greetd/config.toml written; greetd.service enabled"
 
-    # Fedora's greetd.service ships with After=getty@tty1.service (upstream
-    # has Before=), so at boot getty@tty1 wins the race for tty1 and the
-    # Conflicts= directive can't pry it loose cleanly — greetd fails fast
-    # and the user gets dumped at the standard console login. Disable+mask
-    # the autovt instance so nothing competes with greetd. tty2–tty6 still
-    # spawn getty normally, so this is not a hard lockout if greetd fails.
-    if systemctl is-enabled getty@tty1.service &>/dev/null; then
-        sudo systemctl disable getty@tty1.service
-        sudo systemctl mask getty@tty1.service
-        log "Disabled and masked getty@tty1.service so greetd owns tty1"
-    else
-        warn "getty@tty1.service not enabled — nothing to disable"
-    fi
-
     if [ ! -f /usr/share/wayland-sessions/hyprland.desktop ]; then
         warn "No /usr/share/wayland-sessions/hyprland.desktop — uwsm needs this session file (shipped by the hyprland package)"
     fi
