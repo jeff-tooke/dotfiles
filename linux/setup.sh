@@ -57,9 +57,11 @@ err() { echo -e "${RED}[x]${NC} $1" | tee -a "$LOG_FILE"; exit 1; }
 section() { echo -e "\n${BLUE}--- $1 ---${NC}\n" | tee -a "$LOG_FILE"; }
 
 # Define common packages for Linux
+# starship intentionally excluded — only Arch packages it; Debian/Fedora get it
+# via a release-binary install in a later step.
 PACKAGES=(
     "alacritty" "bat" "btop" "curl" "dunst" "eza" "fastfetch" "flatpak" "foot" "fzf" "git" "grim" "jq" "kitty" "make" "neovim"
-    "podman" "podman-compose" "ripgrep" "slurp" "starship" "tmux" "unzip" "waybar" "wget" "wl-clipboard" "wofi" "zoxide" "zsh"
+    "podman" "podman-compose" "ripgrep" "slurp" "tmux" "unzip" "waybar" "wget" "wl-clipboard" "wofi" "zoxide" "zsh"
     "zsh-autosuggestions" "zsh-syntax-highlighting"
 )
 
@@ -145,7 +147,10 @@ elif [ -f /etc/os-release ]; then
             PKG_MANAGER="dnf"
             INSTALL_ARGS="-y install"
 
-            PACKAGES+=("@Development Tools" "chezmoi" "fd-find" "greetd" "nodejs24-npm" "python" "python-pip" "tuigreet")
+            # @development-tools is dnf's shorthand for `dnf group install
+            # development-tools`. Note the lowercase + hyphen — the spaced
+            # "Development Tools" form does not resolve on Fedora 40+.
+            PACKAGES+=("@development-tools" "chezmoi" "fd-find" "greetd" "nodejs24-npm" "python" "python-pip" "tuigreet")
 
             if [ "$IS_VM" = true ]; then
                 PACKAGES+=("mesa-dri-drivers" "mesa-demos" "spice-vdagent")
@@ -159,17 +164,16 @@ elif [ -f /etc/os-release ]; then
                 sudo dnf -y install dnf-plugins-core
                 sudo dnf -y copr enable lionheartp/Hyprland
 
+                # polkit-gnome was dropped from Fedora 44 (the GNOME polkit
+                # agent moved to gnome-shell). Keep just `polkit` here; the
+                # Hyprland session uses hyprpolkitagent-style helpers instead.
                 PACKAGES+=(
                     "hyprland" "hyprpaper" "hyprlock" "hypridle"
-                    "xdg-desktop-portal-hyprland" "xdg-desktop-portal-gtk"
-                    "polkit" "polkit-gnome"
+                    "xdg-desktop-portal-hyprland" "xdg-desktop-portal-gtk" "polkit"
                     "qt5-qtwayland" "qt6-qtwayland" "gtk3" "gtk4"
-                    "pipewire" "pipewire-pulseaudio" "wireplumber"
-                    "NetworkManager"
-                    "google-noto-sans-fonts" "google-noto-emoji-fonts"
-                    "jetbrains-mono-fonts" "papirus-icon-theme"
-                    "brightnessctl" "xdg-utils"
-                    "uwsm"
+                    "pipewire" "pipewire-pulseaudio" "wireplumber" "NetworkManager"
+                    "google-noto-sans-fonts" "google-noto-emoji-fonts" "jetbrains-mono-fonts"
+                    "papirus-icon-theme" "brightnessctl" "xdg-utils" "uwsm"
                 )
             elif [ "$DISTRO" = "fedora" ]; then
                 warn "Fedora ${VERSION_ID:-?} is older than 43 — lionheartp/Hyprland COPR has no build for this release; Hyprland packages will not be installed"
@@ -186,7 +190,7 @@ elif [ -f /etc/os-release ]; then
             # Core tooling
             PACKAGES+=(
                 "base-devel" "chezmoi" "fd" "greetd-tuigreet" "k9s" "lazydocker" "lazygit"
-                "python" "python-pip" "gnupg" "openssh" "npm"
+                "python" "python-pip" "gnupg" "openssh" "npm" "starship"
             )
 
             # Hyprland desktop minimal set:
@@ -234,9 +238,30 @@ if [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
     esac
 
     section "Installing Target Core Packages"
-    log "Installing: ${PACKAGES[*]}"
-    sudo $PKG_MANAGER $INSTALL_ARGS "${PACKAGES[@]}"
-    log "Core packages installation complete."
+    log "Installing ${#PACKAGES[@]} package(s): ${PACKAGES[*]}"
+    # Fast path: try the whole list in one transaction. If anything fails
+    # (typo, dropped package on a new distro release, transient mirror issue)
+    # fall back to installing one-at-a-time so we can isolate the bad entries
+    # without aborting the entire provisioning run.
+    if sudo $PKG_MANAGER $INSTALL_ARGS "${PACKAGES[@]}"; then
+        log "All ${#PACKAGES[@]} package(s) installed successfully"
+    else
+        warn "Bulk install failed — retrying one-by-one to isolate failures..."
+        install_failed=()
+        for pkg in "${PACKAGES[@]}"; do
+            if sudo $PKG_MANAGER $INSTALL_ARGS "$pkg"; then
+                :
+            else
+                install_failed+=("$pkg")
+            fi
+        done
+        if [ "${#install_failed[@]}" -eq 0 ]; then
+            log "All ${#PACKAGES[@]} package(s) installed on retry"
+        else
+            warn "${#install_failed[@]}/${#PACKAGES[@]} package(s) failed permanently: ${install_failed[*]}"
+            warn "Continuing with provisioning — fix package names and re-run if needed"
+        fi
+    fi
 
 fi
 
@@ -790,13 +815,28 @@ fi
 # =============================================================================
 
 # Chezmoi dotfiles bootstrap
+# Arch/Fedora install chezmoi via pacman/dnf to /usr/bin/chezmoi (always on
+# PATH). Debian installs it via the release-binary step above to
+# ~/.local/bin/chezmoi — and that directory is NOT on PATH yet, because the
+# .zshenv that adds it is itself one of the dotfiles `chezmoi apply` is about
+# to lay down. Resolve the binary explicitly to dodge the chicken-and-egg.
 section "Applying dotfiles via chezmoi"
-if [ ! -d "$HOME/.local/share/chezmoi" ]; then
-    $HOME/.local/bin/chezmoi init --source "$HOME/dotfiles"
+if [ "$IS_DEBIAN" = true ]; then
+    CHEZMOI_BIN="$HOME/.local/bin/chezmoi"
 else
-    log "chezmoi already initialised — skipping init"
+    CHEZMOI_BIN="$(command -v chezmoi || true)"
 fi
-$HOME/.local/bin/chezmoi apply --source "$HOME/dotfiles"
+
+if [ -z "$CHEZMOI_BIN" ] || [ ! -x "$CHEZMOI_BIN" ]; then
+    warn "chezmoi not found (looked for: ${CHEZMOI_BIN:-<nothing on PATH>}) — skipping dotfiles apply"
+else
+    if [ ! -d "$HOME/.local/share/chezmoi" ]; then
+        "$CHEZMOI_BIN" init --source "$HOME/dotfiles"
+    else
+        log "chezmoi already initialised — skipping init"
+    fi
+    "$CHEZMOI_BIN" apply --source "$HOME/dotfiles"
+fi
 
 # TPM bootstrap. install_plugins is a no-op unless the tmux config (applied
 # above via chezmoi) lists plugins for TPM to manage.
