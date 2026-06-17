@@ -38,7 +38,30 @@
 #   git clone --recurse-submodules https://github.com/<user>/dotfiles ~/.dotfiles
 #   bash ~/.dotfiles/linux/setup.sh
 #
-# Debian/Ubuntu/Fedora/RHEL: a working install with sudo + curl + git.
+# Debian/Ubuntu:
+#   - A working install booted, with a non-root user that has sudo privileges
+#   - Working internet connection
+#   - These packages installed via apt:  sudo build-essential curl git
+#     (sudo is not always present on a minimal Debian install; build-essential
+#      pulls in gcc/make/etc. needed for later source-builds; curl + git are
+#      needed to fetch this repo and the release-binary installers)
+#   - This repo is cloned to ~/.dotfiles, e.g.:
+#       git clone --recurse-submodules https://github.com/<user>/dotfiles ~/.dotfiles
+#   - Run as the target user (NOT root); the script will sudo when needed
+#
+# Fedora/RHEL:
+#   - A working install booted, with a non-root user account; sudo is
+#     pre-configured for the wheel group on Fedora installs, so the user
+#     created during install already has it
+#   - Working internet connection
+#   - These packages installed via dnf:  @development-tools git
+#     (@development-tools is dnf's group install shorthand for gcc/make/
+#      autoconf/etc.; git is needed to clone this repo. curl ships with the
+#      base install.)
+#   - This repo is cloned to ~/.dotfiles, e.g.:
+#       git clone --recurse-submodules https://github.com/<user>/dotfiles ~/.dotfiles
+#   - Run as the target user (NOT root); the script will sudo when needed
+#
 # macOS: a fresh user account; Xcode CLI tools + Homebrew will be installed.
 # ============================================================================
 
@@ -234,7 +257,11 @@ elif [ -f /etc/os-release ]; then
             PKG_MANAGER="apt-get"
             INSTALL_ARGS="-y install"
 
-            PACKAGES+=("build-essential" "fd-find" "greetd" "npm" "python3" "python3-pip" "starship" "tuigreet")
+            # openssh-server is in the package list (not the prereqs) so that
+            # remote access is available after the first reboot — useful when
+            # the tui-greet screen on a fresh boot misbehaves and SSH is the
+            # only way in to view logs.
+            PACKAGES+=("fd-find" "greetd" "npm" "openssh-server" "python3" "python3-pip" "starship" "tuigreet")
 
             if [ "$IS_VM" = true ]; then
                 PACKAGES+=("mesa-utils" "libgl1-mesa-dri" "spice-vdagent")
@@ -248,10 +275,7 @@ elif [ -f /etc/os-release ]; then
             PKG_MANAGER="dnf"
             INSTALL_ARGS="-y install"
 
-            # @development-tools is dnf's shorthand for `dnf group install
-            # development-tools`. Note the lowercase + hyphen — the spaced
-            # "Development Tools" form does not resolve on Fedora 40+.
-            PACKAGES+=("@development-tools" "chezmoi" "fd-find" "greetd" "nodejs24-npm" "python" "python-pip" "tuigreet")
+            PACKAGES+=("chezmoi" "fd-find" "greetd" "nodejs24-npm" "python" "python-pip" "tuigreet")
 
             if [ "$IS_VM" = true ]; then
                 PACKAGES+=("mesa-dri-drivers" "mesa-demos" "spice-vdagent")
@@ -290,7 +314,7 @@ elif [ -f /etc/os-release ]; then
 
             # Core tooling
             PACKAGES+=(
-                "base-devel" "chezmoi" "fd" "greetd-tuigreet" "k9s" "lazydocker" "lazygit"
+                "chezmoi" "fd" "greetd-tuigreet" "k9s" "lazydocker" "lazygit"
                 "python" "python-pip" "gnupg" "openssh" "npm" "starship"
             )
 
@@ -899,6 +923,13 @@ fi
 # .zshenv that adds it is itself one of the dotfiles `chezmoi apply` is about
 # to lay down. Resolve the binary explicitly to dodge the chicken-and-egg.
 section "Applying dotfiles via chezmoi"
+
+# Set this to the GitHub username hosting your dotfiles repo to switch the
+# init step over to the upstream `chezmoi init --apply <user>` flow (which
+# clones the repo into chezmoi's source dir for you). Left unset because the
+# script currently uses the local `~/dotfiles` checkout as the source.
+# GITHUB_USER=""
+
 if [ "$IS_DEBIAN" = true ]; then
     CHEZMOI_BIN="$HOME/.local/bin/chezmoi"
 else
@@ -910,6 +941,7 @@ if [ -z "$CHEZMOI_BIN" ] || [ ! -x "$CHEZMOI_BIN" ]; then
 else
     if [ ! -d "$HOME/.local/share/chezmoi" ]; then
         "$CHEZMOI_BIN" init --source "$HOME/dotfiles"
+        # "$CHEZMOI_BIN" init --apply "$GITHUB_USER"
     else
         log "chezmoi already initialised — skipping init"
     fi
