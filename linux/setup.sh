@@ -400,17 +400,14 @@ if [ "$IS_DEBIAN" = true ]; then
     section "Configuring greetd + tuigreet"
     sudo tee /etc/greetd/config.toml >/dev/null <<'EOF'
 [terminal]
-vt = 1
+vt = 7
 
 [default_session]
 command = "tuigreet --time --asterisks --cmd 'zsh -l'"
 user = "_greetd"
 EOF
-    # Debian only: leave greetd disabled so it doesn't grab tty1 on boot
-    # while the display stack is still being shaken out. Enable manually
-    # with `sudo systemctl enable --now greetd.service` once ready.
-    sudo systemctl disable greetd.service 2>/dev/null || true
-    log "/etc/greetd/config.toml written; greetd.service left disabled"
+    sudo systemctl enable greetd.service
+    log "/etc/greetd/config.toml written; greetd.service enabled"
 
 
     if [ "$IS_VM" = true ]; then
