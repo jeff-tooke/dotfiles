@@ -278,7 +278,7 @@ elif [ -f /etc/os-release ]; then
             PACKAGES+=("chezmoi" "fd-find" "greetd" "nodejs24-npm" "python" "python-pip" "tuigreet")
 
             if [ "$IS_VM" = true ]; then
-                PACKAGES+=("mesa-dri-drivers" "mesa-demos" "spice-vdagent")
+                PACKAGES+=("egl-utils" "mesa-dri-drivers" "mesa-demos" "spice-vdagent")
             fi
 
             # Hyprland is not in Fedora base repos. lionheartp/Hyprland COPR
@@ -406,8 +406,11 @@ vt = 1
 command = "tuigreet --time --asterisks --cmd 'zsh -l'"
 user = "_greetd"
 EOF
-    sudo systemctl enable greetd.service
-    log "/etc/greetd/config.toml written; greetd.service enabled"
+    # Debian only: leave greetd disabled so it doesn't grab tty1 on boot
+    # while the display stack is still being shaken out. Enable manually
+    # with `sudo systemctl enable --now greetd.service` once ready.
+    sudo systemctl disable greetd.service 2>/dev/null || true
+    log "/etc/greetd/config.toml written; greetd.service left disabled"
 
 
     if [ "$IS_VM" = true ]; then
