@@ -924,11 +924,10 @@ fi
 # to lay down. Resolve the binary explicitly to dodge the chicken-and-egg.
 section "Applying dotfiles via chezmoi"
 
-# Set this to the GitHub username hosting your dotfiles repo to switch the
-# init step over to the upstream `chezmoi init --apply <user>` flow (which
-# clones the repo into chezmoi's source dir for you). Left unset because the
-# script currently uses the local `~/dotfiles` checkout as the source.
-# GITHUB_USER=""
+# GitHub username hosting the dotfiles repo. `chezmoi init --apply <user>`
+# clones it into chezmoi's source dir and applies in one step, so the local
+# ~/dotfiles checkout isn't required on a fresh VM.
+GITHUB_USER="jeff-tooke"
 
 if [ "$IS_DEBIAN" = true ]; then
     CHEZMOI_BIN="$HOME/.local/bin/chezmoi"
@@ -940,13 +939,22 @@ if [ -z "$CHEZMOI_BIN" ] || [ ! -x "$CHEZMOI_BIN" ]; then
     warn "chezmoi not found (looked for: ${CHEZMOI_BIN:-<nothing on PATH>}) — skipping dotfiles apply"
 else
     if [ ! -d "$HOME/.local/share/chezmoi" ]; then
-        "$CHEZMOI_BIN" init --source "$HOME/dotfiles"
-        # "$CHEZMOI_BIN" init --apply "$GITHUB_USER"
+        "$CHEZMOI_BIN" init --apply "$GITHUB_USER"
     else
-        log "chezmoi already initialised — skipping init"
+        log "chezmoi already initialised — running apply"
+        "$CHEZMOI_BIN" apply
     fi
-    "$CHEZMOI_BIN" apply --source "$HOME/dotfiles"
 fi
+
+# Previous local-source flow — kept for reference if you want to point chezmoi
+# at a working copy under ~/dotfiles instead of the GitHub remote:
+#
+# if [ ! -d "$HOME/.local/share/chezmoi" ]; then
+#     "$CHEZMOI_BIN" init --source "$HOME/dotfiles"
+# else
+#     log "chezmoi already initialised — skipping init"
+# fi
+# "$CHEZMOI_BIN" apply --source "$HOME/dotfiles"
 
 # TPM bootstrap. install_plugins is a no-op unless the tmux config (applied
 # above via chezmoi) lists plugins for TPM to manage.
