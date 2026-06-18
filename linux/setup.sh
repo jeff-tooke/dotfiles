@@ -3,7 +3,7 @@
 # ============================================================================
 # Prerequisites (must be true BEFORE running this script)
 # ----------------------------------------------------------------------------
-# Arch Linux -  first-boot bootstrap
+# Arch:
 #
 #   # 1. Switch to the root account (use the root password set in archinstall)
 #   su -
@@ -26,7 +26,7 @@
 #   git clone https://github.com/<user>/dotfiles.git
 #   ~/dotfiles/linux/setup.sh
 #
-# Debian/Ubuntu:
+# Debian:
 #   - A working install booted, with a non-root user that has sudo privileges
 #   - Working internet connection
 #   - These packages installed via apt:  sudo build-essential curl git
@@ -37,7 +37,7 @@
 #       git clone --recurse-submodules https://github.com/<user>/dotfiles ~/.dotfiles
 #   - Run as the target user (NOT root); the script will sudo when needed
 #
-# Fedora/RHEL:
+# Fedora:
 #   - A working install booted, with a non-root user account; sudo is
 #     pre-configured for the wheel group on Fedora installs, so the user
 #     created during install already has it
@@ -168,11 +168,120 @@ install_release_binary() {
     esac
 }
 
+# ============================================================================
+# Shared per-distro helpers
+# ============================================================================
+
+# configure_greetd <vt> <greetd_user> [session_cmd]
+# Writes /etc/greetd/config.toml, enables the service, then sanity-checks that
+# the Hyprland session file and uwsm are actually present. The session command
+# is uniform across distros, so it defaults — pass a third arg only to override.
+configure_greetd() {
+    local vt="$1" greetd_user="$2"
+    local session_cmd="${3:-uwsm start hyprland.desktop}"
+
+    section "Configuring greetd + tuigreet"
+    sudo tee /etc/greetd/config.toml >/dev/null <<EOF
+[terminal]
+vt = $vt
+
+[default_session]
+command = "tuigreet --time --asterisks --cmd '$session_cmd'"
+user = "$greetd_user"
+EOF
+    sudo systemctl enable greetd.service
+    log "/etc/greetd/config.toml written (vt=$vt, user=$greetd_user); greetd.service enabled"
+
+    if [ ! -f /usr/share/wayland-sessions/hyprland.desktop ]; then
+        warn "No /usr/share/wayland-sessions/hyprland.desktop — uwsm needs this session file (shipped by the hyprland package)"
+    fi
+    if ! command -v uwsm &>/dev/null; then
+        warn "uwsm not found on PATH — package install likely failed; re-run the ${PKG_MANAGER:-package} install step"
+    fi
+}
+
+# apply_vm_console_fixes
+# VM-only (caller gates on $IS_VM): put a serial console on the kernel cmdline
+# so the boot is reachable over UTM's serial, and free tty1 from kmscon so
+# greetd can own it. Idempotent — skips entries that already carry console=tty0.
+apply_vm_console_fixes() {
+    local serial_con entries_dir d entry cmdline_changed
+
+    case "$(uname -m)" in
+        aarch64) serial_con="ttyAMA0" ;;
+        *)       serial_con="ttyS0" ;;
+    esac
+
+    entries_dir=""
+    for d in /boot/loader/entries /efi/loader/entries /boot/efi/loader/entries; do
+        if [ -d "$d" ]; then entries_dir="$d"; break; fi
+    done
+
+    if [ -n "$entries_dir" ]; then
+        shopt -s nullglob
+        cmdline_changed=false
+        for entry in "$entries_dir"/*.conf; do
+            if ! grep -q '^options ' "$entry"; then continue; fi
+            if grep -q 'console=tty0' "$entry"; then
+                warn "$(basename "$entry"): console=tty0 already set — skipping"
+                continue
+            fi
+            sudo sed -i "/^options /s|\$| console=${serial_con} console=tty0|" "$entry"
+            log "$(basename "$entry"): appended 'console=${serial_con} console=tty0'"
+            cmdline_changed=true
+        done
+        shopt -u nullglob
+        if [ "$cmdline_changed" != true ]; then
+            warn "No type-1 systemd-boot entries with an 'options' line found (UKI/EFISTUB?)."
+            warn "Add 'console=${serial_con} console=tty0' to your kernel cmdline manually."
+        fi
+    else
+        warn "No systemd-boot entries dir found (stock Fedora/GRUB systems land here — expected)."
+        warn "GRUB:  add 'console=${serial_con} console=tty0' to GRUB_CMDLINE_LINUX_DEFAULT in /etc/default/grub,"
+        warn "       then regenerate: update-grub (Debian) / grub2-mkconfig -o /boot/grub2/grub.cfg (Fedora)."
+        warn "UKI:   add it to /etc/kernel/cmdline then rebuild (mkinitcpio/ukify)."
+    fi
+
+    # Free tty1 from kmscon (not shipped on stock Fedora/Debian — checked anyway).
+    if systemctl list-unit-files | grep -q 'kmsconvt@'; then
+        sudo systemctl disable kmsconvt@tty1.service 2>/dev/null || true
+        sudo systemctl mask kmsconvt@tty1.service
+        log "Disabled and masked kmsconvt@tty1.service so greetd owns tty1"
+    else
+        warn "kmsconvt@tty1 not present — nothing to mask"
+    fi
+}
+
+# add_user_to_graphics_groups — video/input for DRM/libinput, seat if seatd is in use.
+add_user_to_graphics_groups() {
+    section "Adding $USER to video,input groups"
+    sudo usermod -aG video,input "$USER"
+    if getent group seat &>/dev/null; then
+        sudo usermod -aG seat "$USER"
+    fi
+}
+
+# set_login_shell_zsh — switch the login shell to zsh unless it already is.
+set_login_shell_zsh() {
+    section "Setting zsh as login shell"
+    if getent passwd "$USER" | grep -q '/zsh$'; then
+        warn "Login shell is already zsh"
+    else
+        sudo chsh -s /usr/bin/zsh "$USER" && log "Login shell set to /usr/bin/zsh"
+    fi
+}
+
+# enable_networkmanager — idempotent; harmless if already enabled by a preset.
+enable_networkmanager() {
+    section "Enabling NetworkManager"
+    sudo systemctl enable NetworkManager.service
+}
+
 # Define common packages for Linux
 # starship intentionally excluded — only Arch packages it; Debian/Fedora get it
 # via a release-binary install in a later step.
 PACKAGES=(
-    "alacritty" "bat" "btop" "curl" "dunst" "eza" "fastfetch" "flatpak" "foot" "fzf" "git" "grim" "jq" "kitty" "make" "neovim"
+    "bat" "btop" "curl" "dunst" "eza" "fastfetch" "flatpak" "foot" "fzf" "git" "grim" "jq" "kitty" "make" "neovim"
     "podman" "podman-compose" "ripgrep" "slurp" "tmux" "unzip" "waybar" "wget" "wl-clipboard" "wofi" "zoxide" "zsh"
     "zsh-autosuggestions" "zsh-syntax-highlighting"
 )
@@ -240,8 +349,8 @@ elif [ -f /etc/os-release ]; then
             log "Detected NixOS. System should be managed via configuration.nix. See README.md for more details"
             ;;
 
-        debian|ubuntu|pop|mint)
-            section "Configuring for Debian/Ubuntu"
+        debian)
+            section "Configuring for Debian"
             PKG_MANAGER="apt-get"
             INSTALL_ARGS="-y install"
 
@@ -258,8 +367,8 @@ elif [ -f /etc/os-release ]; then
             IS_DEBIAN=true
             ;;
 
-        fedora|rhel|centos|rocky|almalinux)
-            section "Configuring for Fedora/RHEL"
+        fedora)
+            section "Configuring for Fedora"
             PKG_MANAGER="dnf"
             INSTALL_ARGS="-y install"
 
@@ -271,15 +380,11 @@ elif [ -f /etc/os-release ]; then
 
             # Hyprland is not in Fedora base repos. lionheartp/Hyprland COPR
             # provides it, but only builds for Fedora 43+ (and rawhide).
-            # COPR is Fedora-only — skip on RHEL/CentOS clones.
             if [ "$DISTRO" = "fedora" ] && [ "${VERSION_ID%%.*}" -ge 43 ] 2>/dev/null; then
                 log "Enabling lionheartp/Hyprland COPR..."
                 sudo dnf -y install dnf-plugins-core
                 sudo dnf -y copr enable lionheartp/Hyprland
 
-                # polkit-gnome was dropped from Fedora 44 (the GNOME polkit
-                # agent moved to gnome-shell). Keep just `polkit` here; the
-                # Hyprland session uses hyprpolkitagent-style helpers instead.
                 PACKAGES+=(
                     "hyprland" "hyprpaper" "hyprlock" "hypridle" "hyprland-guiutils"
                     "xdg-desktop-portal-hyprland" "xdg-desktop-portal-gtk" "polkit"
@@ -295,7 +400,7 @@ elif [ -f /etc/os-release ]; then
             IS_FEDORA=true
             ;;
 
-        arch|archarm|cachyos|manjaro)
+        arch|archarm)
             section "Configuring for Arch Linux"
             PKG_MANAGER="pacman"
             INSTALL_ARGS="-S --needed --noconfirm"
@@ -390,9 +495,6 @@ if [ "$IS_DEBIAN" = true ]; then
     # trixie-backports (0.54.x at time of writing), as do hyprpaper and uwsm.
     # Add the backports suite (deb822 format) and pull ONLY the Hyprland stack
     # from it via `-t trixie-backports`; everything else stays on stable.
-    # Ubuntu/Mint/Pop don't share Debian's backports layout or codename, so
-    # gate this on a real Debian id + the trixie codename (both come from the
-    # /etc/os-release we sourced above).
     if [ "$ID" = "debian" ] && [ "${VERSION_CODENAME:-}" = "trixie" ]; then
         BACKPORTS_SOURCES="/etc/apt/sources.list.d/debian-backports.sources"
         if [ -f "$BACKPORTS_SOURCES" ] && grep -q 'trixie-backports' "$BACKPORTS_SOURCES"; then
@@ -410,7 +512,7 @@ EOF
 
         sudo apt-get update
 
-        HYPR_BACKPORTS=("hyprland" "hyprpaper" "hyprland-guiutils" "uwsm")
+        HYPR_BACKPORTS=("hyprland" "hyprland-guiutils" "hyprpaper" "uwsm")
         log "Installing from trixie-backports: ${HYPR_BACKPORTS[*]}"
         if sudo apt-get -y -t trixie-backports install "${HYPR_BACKPORTS[@]}"; then
             log "Hyprland stack installed from trixie-backports"
@@ -421,77 +523,11 @@ EOF
         warn "Not Debian trixie (id=$ID codename=${VERSION_CODENAME:-?}) — skipping trixie-backports Hyprland install"
     fi
 
-    section "Configuring greetd + tuigreet"
-    sudo tee /etc/greetd/config.toml >/dev/null <<'EOF'
-[terminal]
-vt = 7
+    configure_greetd 7 "_greetd"
 
-[default_session]
-command = "tuigreet --time --asterisks --cmd 'uwsm start hyprland.desktop'"
-user = "_greetd"
-EOF
-    sudo systemctl enable greetd.service
-    log "/etc/greetd/config.toml written; greetd.service enabled"
+    if [ "$IS_VM" = true ]; then apply_vm_console_fixes; fi
 
-    if [ ! -f /usr/share/wayland-sessions/hyprland.desktop ]; then
-        warn "No /usr/share/wayland-sessions/hyprland.desktop — uwsm needs this session file (shipped by the hyprland package)"
-    fi
-    if ! command -v uwsm &>/dev/null; then
-        warn "uwsm not found on PATH — trixie-backports install likely failed; re-run the backports step"
-    fi
-
-
-    if [ "$IS_VM" = true ]; then
-
-        case "$(uname -m)" in
-            aarch64) SERIAL_CON="ttyAMA0" ;;
-            *)       SERIAL_CON="ttyS0" ;;
-        esac
-
-        ENTRIES_DIR=""
-        for d in /boot/loader/entries /efi/loader/entries /boot/efi/loader/entries; do
-            if [ -d "$d" ]; then ENTRIES_DIR="$d"; break; fi
-        done
-
-        if [ -n "$ENTRIES_DIR" ]; then
-            shopt -s nullglob
-            cmdline_changed=false
-            for entry in "$ENTRIES_DIR"/*.conf; do
-                if ! grep -q '^options ' "$entry"; then continue; fi
-                if grep -q 'console=tty0' "$entry"; then
-                    warn "$(basename "$entry"): console=tty0 already set — skipping"
-                    continue
-                fi
-                sudo sed -i "/^options /s|\$| console=${SERIAL_CON} console=tty0|" "$entry"
-                log "$(basename "$entry"): appended 'console=${SERIAL_CON} console=tty0'"
-                cmdline_changed=true
-            done
-            shopt -u nullglob
-            if [ "$cmdline_changed" != true ]; then
-                warn "No type-1 systemd-boot entries with an 'options' line found (UKI/EFISTUB?)."
-                warn "Add 'console=${SERIAL_CON} console=tty0' to your kernel cmdline manually."
-            fi
-        else
-            warn "No systemd-boot entries dir found."
-            warn "GRUB: add 'console=${SERIAL_CON} console=tty0' to GRUB_CMDLINE_LINUX_DEFAULT then regenerate grub.cfg."
-            warn "UKI:  add it to /etc/kernel/cmdline then rebuild (mkinitcpio/ukify)."
-        fi
-
-        # 2) Stop kmscon stealing tty1 from greetd.
-        if systemctl list-unit-files | grep -q 'kmsconvt@'; then
-            sudo systemctl disable kmsconvt@tty1.service 2>/dev/null || true
-            sudo systemctl mask kmsconvt@tty1.service
-            log "Disabled and masked kmsconvt@tty1.service so greetd owns tty1"
-        else
-            warn "kmsconvt@tty1 not present — nothing to mask"
-        fi
-    fi
-
-    section "Adding $USER to video,input groups"
-    sudo usermod -aG video,input "$USER"
-    if getent group seat &>/dev/null; then
-        sudo usermod -aG seat "$USER"
-    fi
+    add_user_to_graphics_groups
 
     section "Installing chezmoi"
 
@@ -529,12 +565,7 @@ EOF
         fi
     fi
 
-    section "Setting zsh as login shell"
-    if getent passwd "$USER" | grep -q '/zsh$'; then
-        warn "Login shell is already zsh"
-    else
-        sudo chsh -s /usr/bin/zsh "$USER" && log "Login shell set to /usr/bin/zsh"
-    fi
+    set_login_shell_zsh
 
     section "Setting up bat symlink"
     if command -v batcat >/dev/null 2>&1; then
@@ -553,7 +584,7 @@ EOF
     # config is the single source of truth. Done as a /dev/null symlink rather
     # than `systemctl --user mask` so it works even when this script runs without
     # an active user bus (e.g. over SSH during provisioning). Arch/Fedora don't
-    # ship this unit, which is why the double-bar only shows on Debian.
+    # ship this unit.
     if [ -e /usr/lib/systemd/user/waybar.service ]; then
         mkdir -p "$HOME/.config/systemd/user"
         ln -sf /dev/null "$HOME/.config/systemd/user/waybar.service"
@@ -575,86 +606,15 @@ fi
 
 if [ "$IS_ARCH" = true ]; then
 
-    section "Enabling NetworkManager"
-    sudo systemctl enable NetworkManager.service
+    enable_networkmanager
 
-    section "Configuring greetd + tuigreet"
-    sudo tee /etc/greetd/config.toml >/dev/null <<'EOF'
-[terminal]
-vt = 1
+    configure_greetd 1 "greeter"
 
-[default_session]
-command = "tuigreet --time --asterisks --cmd 'uwsm start hyprland.desktop'"
-user = "greeter"
-EOF
-    sudo systemctl enable greetd.service
-    log "/etc/greetd/config.toml written; greetd.service enabled"
+    if [ "$IS_VM" = true ]; then apply_vm_console_fixes; fi
 
-    if [ ! -f /usr/share/wayland-sessions/hyprland.desktop ]; then
-        warn "No /usr/share/wayland-sessions/hyprland.desktop — uwsm needs this session file (shipped by the hyprland package)"
-    fi
-    if ! command -v uwsm &>/dev/null; then
-        warn "uwsm not found on PATH — package install likely failed; re-run the pacman step"
-    fi
+    add_user_to_graphics_groups
 
-    if [ "$IS_VM" = true ]; then
-
-        case "$(uname -m)" in
-            aarch64) SERIAL_CON="ttyAMA0" ;;
-            *)       SERIAL_CON="ttyS0" ;;
-        esac
-
-        ENTRIES_DIR=""
-        for d in /boot/loader/entries /efi/loader/entries /boot/efi/loader/entries; do
-            if [ -d "$d" ]; then ENTRIES_DIR="$d"; break; fi
-        done
-
-        if [ -n "$ENTRIES_DIR" ]; then
-            shopt -s nullglob
-            cmdline_changed=false
-            for entry in "$ENTRIES_DIR"/*.conf; do
-                if ! grep -q '^options ' "$entry"; then continue; fi
-                if grep -q 'console=tty0' "$entry"; then
-                    warn "$(basename "$entry"): console=tty0 already set — skipping"
-                    continue
-                fi
-                sudo sed -i "/^options /s|\$| console=${SERIAL_CON} console=tty0|" "$entry"
-                log "$(basename "$entry"): appended 'console=${SERIAL_CON} console=tty0'"
-                cmdline_changed=true
-            done
-            shopt -u nullglob
-            if [ "$cmdline_changed" != true ]; then
-                warn "No type-1 systemd-boot entries with an 'options' line found (UKI/EFISTUB?)."
-                warn "Add 'console=${SERIAL_CON} console=tty0' to your kernel cmdline manually."
-            fi
-        else
-            warn "No systemd-boot entries dir found."
-            warn "GRUB: add 'console=${SERIAL_CON} console=tty0' to GRUB_CMDLINE_LINUX_DEFAULT then regenerate grub.cfg."
-            warn "UKI:  add it to /etc/kernel/cmdline then rebuild (mkinitcpio/ukify)."
-        fi
-
-        # 2) Stop kmscon stealing tty1 from greetd.
-        if systemctl list-unit-files | grep -q 'kmsconvt@'; then
-            sudo systemctl disable kmsconvt@tty1.service 2>/dev/null || true
-            sudo systemctl mask kmsconvt@tty1.service
-            log "Disabled and masked kmsconvt@tty1.service so greetd owns tty1"
-        else
-            warn "kmsconvt@tty1 not present — nothing to mask (good)"
-        fi
-    fi
-
-    section "Adding $USER to video,input groups"
-    sudo usermod -aG video,input "$USER"
-    if getent group seat &>/dev/null; then
-        sudo usermod -aG seat "$USER"
-    fi
-
-    section "Setting zsh as login shell"
-    if getent passwd "$USER" | grep -q '/zsh$'; then
-        warn "Login shell is already zsh"
-    else
-        sudo chsh -s /usr/bin/zsh "$USER" && log "Login shell set to /usr/bin/zsh"
-    fi
+    set_login_shell_zsh
 fi
 
 # =============================================================================
@@ -663,10 +623,7 @@ fi
 
 if [ "$IS_FEDORA" = true ]; then
 
-    section "Enabling NetworkManager"
-    # NetworkManager is enabled by Fedora's default preset, but `systemctl
-    # enable` is idempotent — re-running is harmless.
-    sudo systemctl enable NetworkManager.service
+    enable_networkmanager
 
     section "Checking SELinux status"
     # Fedora ships SELinux enforcing by default. greetd + uwsm + hyprland
@@ -686,102 +643,25 @@ if [ "$IS_FEDORA" = true ]; then
         log "SELinux tools not present — assuming not in use"
     fi
 
-    section "Configuring greetd + tuigreet"
-    # The Fedora greetd package creates a system user named `greetd`
-    # (not `greeter` like Arch's package does). Using the wrong user name
-    # here makes greetd.service start, fail to drop privileges, then exit
-    # — visible as "active (running)" briefly, then "inactive (dead)".
-    sudo tee /etc/greetd/config.toml >/dev/null <<'EOF'
-[terminal]
-vt = 1
+    # Fedora's greetd package creates a `greetd` system user (not `greeter`);
+    # vt 1. Wrong user => greetd starts, fails to drop privileges, then exits
+    # (shows as "active (running)" briefly, then "inactive (dead)").
+    configure_greetd 1 "greetd"
 
-[default_session]
-command = "tuigreet --time --asterisks --cmd 'uwsm start hyprland.desktop'"
-user = "greetd"
-EOF
-    sudo systemctl enable greetd.service
-    log "/etc/greetd/config.toml written; greetd.service enabled"
-
+    # Minimal Fedora boots to multi-user.target — assert graphical so greetd runs.
     current_target="$(systemctl get-default)"
     if [ "$current_target" = "graphical.target" ]; then
-      log "Default target already graphical.target"
+        log "Default target already graphical.target"
     else
-      sudo systemctl set-default graphical.target
-      log "Default target set to graphical.target ( was $current_target)"
+        sudo systemctl set-default graphical.target
+        log "Default target set to graphical.target (was $current_target)"
     fi
 
-    if [ ! -f /usr/share/wayland-sessions/hyprland.desktop ]; then
-        warn "No /usr/share/wayland-sessions/hyprland.desktop — uwsm needs this session file (shipped by the hyprland package)"
-    fi
-    if ! command -v uwsm &>/dev/null; then
-        warn "uwsm not found on PATH — package install likely failed; re-run the dnf step"
-    fi
+    if [ "$IS_VM" = true ]; then apply_vm_console_fixes; fi
 
-    if [ "$IS_VM" = true ]; then
+    add_user_to_graphics_groups
 
-        case "$(uname -m)" in
-            aarch64) SERIAL_CON="ttyAMA0" ;;
-            *)       SERIAL_CON="ttyS0" ;;
-        esac
-
-        # Fedora defaults to GRUB, so the systemd-boot entries search will
-        # usually fall through to the GRUB warn-branch below — that is the
-        # correct outcome on a stock Fedora install.
-        ENTRIES_DIR=""
-        for d in /boot/loader/entries /efi/loader/entries /boot/efi/loader/entries; do
-            if [ -d "$d" ]; then ENTRIES_DIR="$d"; break; fi
-        done
-
-        if [ -n "$ENTRIES_DIR" ]; then
-            shopt -s nullglob
-            cmdline_changed=false
-            for entry in "$ENTRIES_DIR"/*.conf; do
-                if ! grep -q '^options ' "$entry"; then continue; fi
-                if grep -q 'console=tty0' "$entry"; then
-                    warn "$(basename "$entry"): console=tty0 already set — skipping"
-                    continue
-                fi
-                sudo sed -i "/^options /s|\$| console=${SERIAL_CON} console=tty0|" "$entry"
-                log "$(basename "$entry"): appended 'console=${SERIAL_CON} console=tty0'"
-                cmdline_changed=true
-            done
-            shopt -u nullglob
-            if [ "$cmdline_changed" != true ]; then
-                warn "No type-1 systemd-boot entries with an 'options' line found (UKI/EFISTUB?)."
-                warn "Add 'console=${SERIAL_CON} console=tty0' to your kernel cmdline manually."
-            fi
-        else
-            warn "No systemd-boot entries dir found (expected on stock Fedora — uses GRUB)."
-            warn "GRUB: add 'console=${SERIAL_CON} console=tty0' to GRUB_CMDLINE_LINUX_DEFAULT in /etc/default/grub,"
-            warn "      then: sudo grub2-mkconfig -o /boot/grub2/grub.cfg"
-        fi
-
-        # Stop kmscon stealing tty1 from greetd. Fedora doesn't ship kmscon
-        # by default, but check anyway in case it was installed.
-        if systemctl list-unit-files | grep -q 'kmsconvt@'; then
-            sudo systemctl disable kmsconvt@tty1.service 2>/dev/null || true
-            sudo systemctl mask kmsconvt@tty1.service
-            log "Disabled and masked kmsconvt@tty1.service so greetd owns tty1"
-        else
-            warn "kmsconvt@tty1 not present — nothing to mask"
-        fi
-    fi
-
-    section "Adding $USER to video,input groups"
-    sudo usermod -aG video,input "$USER"
-    if getent group seat &>/dev/null; then
-        sudo usermod -aG seat "$USER"
-    fi
-
-    section "Setting zsh as login shell"
-    if getent passwd "$USER" | grep -q '/zsh$'; then
-        warn "Login shell is already zsh"
-    else
-        sudo chsh -s /usr/bin/zsh "$USER" && log "Login shell set to /usr/bin/zsh"
-    fi
-
-    # Fedora ships `bat` as /usr/bin/bat directly — no batcat rename, no
-    # symlink needed (unlike Debian which renames to avoid a binary clash).
+    set_login_shell_zsh
 fi
 
 # =============================================================================
@@ -790,8 +670,7 @@ fi
 
 # Arch installs all required Nerd Fonts via pacman as part of the main package
 # list above. Debian/Fedora have no equivalent repo packages, so download the
-# Nerd Font release zips manually. Each name below matches the archive name
-# under https://github.com/ryanoasis/nerd-fonts/releases/latest/download/.
+# Nerd Font release zips manually.
 if [ "$IS_ARCH" != true ] && [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
     section "Installing Nerd Fonts (manual)"
 
@@ -833,8 +712,6 @@ fi
 if [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
 
     section "Configure wallpapers"
-    # Resolve source relative to the script, not CWD, so the script works no
-    # matter where it is invoked from. The on-disk dir is 'wallpaper' (singular).
     WALLPAPER_SRC="$(cd "$(dirname "$0")" && pwd)/wallpaper"
     WALLPAPER_DST="$HOME/.local/share/wallpaper"
 
@@ -952,8 +829,6 @@ if [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
             ss_base="https://github.com/starship/starship/releases/download/v$ss_version"
             log "Latest starship is $ss_version ($ss_target)"
 
-            # starship publishes a per-asset .sha256 sidecar file. Its content
-            # is "<digest>  <filename>\n", so extract just the digest.
             ss_sha=$(curl -fsSL "$ss_base/$ss_asset.sha256" 2>/dev/null | awk '{print $1}')
 
             install_release_binary "starship" \
@@ -980,14 +855,14 @@ section "Applying dotfiles via chezmoi"
 # GitHub username hosting the dotfiles repo. `chezmoi init --apply <user>`
 # clones it into chezmoi's source dir and applies in one step, so the local
 # ~/dotfiles checkout isn't required on a fresh VM.
-# GITHUB_USER="jeff-tooke"
-#
-# if [ "$IS_DEBIAN" = true ]; then
-#     CHEZMOI_BIN="$HOME/.local/bin/chezmoi"
-# else
-#     CHEZMOI_BIN="$(command -v chezmoi || true)"
-# fi
-#
+GITHUB_USER="jeff-tooke"
+
+if [ "$IS_DEBIAN" = true ]; then
+    CHEZMOI_BIN="$HOME/.local/bin/chezmoi"
+else
+    CHEZMOI_BIN="$(command -v chezmoi || true)"
+fi
+
 # if [ -z "$CHEZMOI_BIN" ] || [ ! -x "$CHEZMOI_BIN" ]; then
 #     warn "chezmoi not found (looked for: ${CHEZMOI_BIN:-<nothing on PATH>}) — skipping dotfiles apply"
 # else
@@ -1001,7 +876,7 @@ section "Applying dotfiles via chezmoi"
 
 # Previous local-source flow — kept for reference if you want to point chezmoi
 # at a working copy under ~/dotfiles instead of the GitHub remote:
-
+#
 if [ ! -d "$HOME/.local/share/chezmoi" ]; then
     "$CHEZMOI_BIN" init --source "$HOME/dotfiles"
 else
