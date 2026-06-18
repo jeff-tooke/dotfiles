@@ -26,6 +26,16 @@ linux/**
 .config/aerospace/**
 .config/borders/**
 .config/direnv/**
+.config/ghostty/**
 .config/karabiner/**
 .config/sketchybar/**
+{{ end }}
+
+# Linux-only tools: ignore IF we're on darwin.
+{{ if eq .chezmoi.os "darwin" }}
+.config/dunst/**
+.config/foot/**
+.config/hypr/**
+.config/waybar/**
+.config/wofi/**
 {{ end }}
