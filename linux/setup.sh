@@ -3,19 +3,7 @@
 # ============================================================================
 # Prerequisites (must be true BEFORE running this script)
 # ----------------------------------------------------------------------------
-# Arch Linux (primary target):
-#   - Base Arch install is complete (archinstall or manual) and booted
-#   - A non-root user account exists with sudo privileges (wheel group)
-#   - Working internet connection
-#   - These packages installed via pacman:  base-devel git sudo
-#     (git is needed to clone this repo; base-devel + git are needed by
-#      makepkg/yay for AUR builds later in the script)
-#   - This repo is cloned to ~/.dotfiles, e.g.:
-#       git clone --recurse-submodules https://github.com/<user>/dotfiles ~/.dotfiles
-#   - Run as the target user (NOT root); the script will sudo when needed
-#
-# Arch first-boot bootstrap — run ONCE as root if sudo/git are missing
-# (typical on a fresh archinstall before any user provisioning):
+# Arch Linux -  first-boot bootstrap
 #
 #   # 1. Switch to the root account (use the root password set in archinstall)
 #   su -
@@ -35,8 +23,8 @@
 #   # 5. Drop back to your user, clone the dotfiles, run the script.
 #   exit                    # leave the root shell
 #   su - <user>             # log in as your user (or just reboot + log in)
-#   git clone --recurse-submodules https://github.com/<user>/dotfiles ~/.dotfiles
-#   bash ~/.dotfiles/linux/setup.sh
+#   git clone https://github.com/<user>/dotfiles.git
+#   ~/dotfiles/linux/setup.sh
 #
 # Debian/Ubuntu:
 #   - A working install booted, with a non-root user that has sudo privileges
@@ -293,7 +281,7 @@ elif [ -f /etc/os-release ]; then
                 # agent moved to gnome-shell). Keep just `polkit` here; the
                 # Hyprland session uses hyprpolkitagent-style helpers instead.
                 PACKAGES+=(
-                    "hyprland" "hyprpaper" "hyprlock" "hypridle"
+                    "hyprland" "hyprpaper" "hyprlock" "hypridle" "hyprland-guiutils"
                     "xdg-desktop-portal-hyprland" "xdg-desktop-portal-gtk" "polkit"
                     "qt5-qtwayland" "qt6-qtwayland" "gtk3" "gtk4"
                     "pipewire" "pipewire-pulseaudio" "wireplumber" "NetworkManager"
@@ -397,17 +385,60 @@ fi
 
 if [ "$IS_DEBIAN" = true ]; then
 
+    section "Enabling trixie-backports + installing Hyprland stack"
+    # Hyprland is not in Debian 13 (trixie) stable — it lives in
+    # trixie-backports (0.54.x at time of writing), as do hyprpaper and uwsm.
+    # Add the backports suite (deb822 format) and pull ONLY the Hyprland stack
+    # from it via `-t trixie-backports`; everything else stays on stable.
+    # Ubuntu/Mint/Pop don't share Debian's backports layout or codename, so
+    # gate this on a real Debian id + the trixie codename (both come from the
+    # /etc/os-release we sourced above).
+    if [ "$ID" = "debian" ] && [ "${VERSION_CODENAME:-}" = "trixie" ]; then
+        BACKPORTS_SOURCES="/etc/apt/sources.list.d/debian-backports.sources"
+        if [ -f "$BACKPORTS_SOURCES" ] && grep -q 'trixie-backports' "$BACKPORTS_SOURCES"; then
+            warn "trixie-backports already configured at $BACKPORTS_SOURCES — skipping add"
+        else
+            sudo tee "$BACKPORTS_SOURCES" >/dev/null <<'EOF'
+Types: deb
+URIs: http://deb.debian.org/debian
+Suites: trixie-backports
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+EOF
+            log "Wrote $BACKPORTS_SOURCES"
+        fi
+
+        sudo apt-get update
+
+        HYPR_BACKPORTS=("hyprland" "hyprpaper" "hyprland-guiutils" "uwsm")
+        log "Installing from trixie-backports: ${HYPR_BACKPORTS[*]}"
+        if sudo apt-get -y -t trixie-backports install "${HYPR_BACKPORTS[@]}"; then
+            log "Hyprland stack installed from trixie-backports"
+        else
+            warn "trixie-backports install failed for one or more of: ${HYPR_BACKPORTS[*]} — check 'apt-cache policy <pkg>'"
+        fi
+    else
+        warn "Not Debian trixie (id=$ID codename=${VERSION_CODENAME:-?}) — skipping trixie-backports Hyprland install"
+    fi
+
     section "Configuring greetd + tuigreet"
     sudo tee /etc/greetd/config.toml >/dev/null <<'EOF'
 [terminal]
 vt = 7
 
 [default_session]
-command = "tuigreet --time --asterisks --cmd 'zsh -l'"
+command = "tuigreet --time --asterisks --cmd 'uwsm start hyprland.desktop'"
 user = "_greetd"
 EOF
     sudo systemctl enable greetd.service
     log "/etc/greetd/config.toml written; greetd.service enabled"
+
+    if [ ! -f /usr/share/wayland-sessions/hyprland.desktop ]; then
+        warn "No /usr/share/wayland-sessions/hyprland.desktop — uwsm needs this session file (shipped by the hyprland package)"
+    fi
+    if ! command -v uwsm &>/dev/null; then
+        warn "uwsm not found on PATH — trixie-backports install likely failed; re-run the backports step"
+    fi
 
 
     if [ "$IS_VM" = true ]; then
@@ -514,6 +545,28 @@ EOF
             warn "bat symlink already present"
         fi
     fi
+
+    section "Masking packaged waybar.service user unit"
+    # Debian's waybar package ships an enabled waybar.service user unit, so on a
+    # uwsm/systemd login it starts a second bar on top of the one the Hyprland
+    # Lua config launches (exec -> /bin/sh -c waybar). Mask the user unit so the
+    # config is the single source of truth. Done as a /dev/null symlink rather
+    # than `systemctl --user mask` so it works even when this script runs without
+    # an active user bus (e.g. over SSH during provisioning). Arch/Fedora don't
+    # ship this unit, which is why the double-bar only shows on Debian.
+    if [ -e /usr/lib/systemd/user/waybar.service ]; then
+        mkdir -p "$HOME/.config/systemd/user"
+        ln -sf /dev/null "$HOME/.config/systemd/user/waybar.service"
+        log "Masked user waybar.service (Hyprland config owns the bar) — effective next login"
+        # If a user bus happens to be reachable, also stop any running instance
+        # and reload so the mask takes effect now rather than on next login.
+        if systemctl --user show-environment &>/dev/null; then
+            systemctl --user stop waybar.service 2>/dev/null || true
+            systemctl --user daemon-reload 2>/dev/null || true
+        fi
+    else
+        warn "No packaged waybar.service user unit at /usr/lib/systemd/user — nothing to mask"
+    fi
 fi
 
 # =============================================================================
@@ -531,7 +584,7 @@ if [ "$IS_ARCH" = true ]; then
 vt = 1
 
 [default_session]
-command = "tuigreet --time --remember --remember-session --asterisks --cmd 'uwsm start hyprland.desktop'"
+command = "tuigreet --time --asterisks --cmd 'uwsm start hyprland.desktop'"
 user = "greeter"
 EOF
     sudo systemctl enable greetd.service
@@ -643,14 +696,14 @@ if [ "$IS_FEDORA" = true ]; then
 vt = 1
 
 [default_session]
-command = "tuigreet --time --remember --remember-session --asterisks --cmd 'uwsm start hyprland.desktop'"
+command = "tuigreet --time --asterisks --cmd 'uwsm start hyprland.desktop'"
 user = "greetd"
 EOF
     sudo systemctl enable greetd.service
     log "/etc/greetd/config.toml written; greetd.service enabled"
 
     current_target="$(systemctl get-default)"
-    if [ "$current_target" = "graphical.target"]; then
+    if [ "$current_target" = "graphical.target" ]; then
       log "Default target already graphical.target"
     else
       sudo systemctl set-default graphical.target
@@ -927,34 +980,34 @@ section "Applying dotfiles via chezmoi"
 # GitHub username hosting the dotfiles repo. `chezmoi init --apply <user>`
 # clones it into chezmoi's source dir and applies in one step, so the local
 # ~/dotfiles checkout isn't required on a fresh VM.
-GITHUB_USER="jeff-tooke"
-
-if [ "$IS_DEBIAN" = true ]; then
-    CHEZMOI_BIN="$HOME/.local/bin/chezmoi"
-else
-    CHEZMOI_BIN="$(command -v chezmoi || true)"
-fi
-
-if [ -z "$CHEZMOI_BIN" ] || [ ! -x "$CHEZMOI_BIN" ]; then
-    warn "chezmoi not found (looked for: ${CHEZMOI_BIN:-<nothing on PATH>}) — skipping dotfiles apply"
-else
-    if [ ! -d "$HOME/.local/share/chezmoi" ]; then
-        "$CHEZMOI_BIN" init --apply "$GITHUB_USER"
-    else
-        log "chezmoi already initialised — running apply"
-        "$CHEZMOI_BIN" apply
-    fi
-fi
+# GITHUB_USER="jeff-tooke"
+#
+# if [ "$IS_DEBIAN" = true ]; then
+#     CHEZMOI_BIN="$HOME/.local/bin/chezmoi"
+# else
+#     CHEZMOI_BIN="$(command -v chezmoi || true)"
+# fi
+#
+# if [ -z "$CHEZMOI_BIN" ] || [ ! -x "$CHEZMOI_BIN" ]; then
+#     warn "chezmoi not found (looked for: ${CHEZMOI_BIN:-<nothing on PATH>}) — skipping dotfiles apply"
+# else
+#     if [ ! -d "$HOME/.local/share/chezmoi" ]; then
+#         "$CHEZMOI_BIN" init --apply "$GITHUB_USER"
+#     else
+#         log "chezmoi already initialised — running apply"
+#         "$CHEZMOI_BIN" apply
+#     fi
+# fi
 
 # Previous local-source flow — kept for reference if you want to point chezmoi
 # at a working copy under ~/dotfiles instead of the GitHub remote:
-#
-# if [ ! -d "$HOME/.local/share/chezmoi" ]; then
-#     "$CHEZMOI_BIN" init --source "$HOME/dotfiles"
-# else
-#     log "chezmoi already initialised — skipping init"
-# fi
-# "$CHEZMOI_BIN" apply --source "$HOME/dotfiles"
+
+if [ ! -d "$HOME/.local/share/chezmoi" ]; then
+    "$CHEZMOI_BIN" init --source "$HOME/dotfiles"
+else
+    log "chezmoi already initialised — skipping init"
+fi
+"$CHEZMOI_BIN" apply --source "$HOME/dotfiles"
 
 # TPM bootstrap. install_plugins is a no-op unless the tmux config (applied
 # above via chezmoi) lists plugins for TPM to manage.
