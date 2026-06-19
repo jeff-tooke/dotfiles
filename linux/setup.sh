@@ -372,10 +372,10 @@ elif [ -f /etc/os-release ]; then
             PKG_MANAGER="dnf"
             INSTALL_ARGS="-y install"
 
-            PACKAGES+=("chezmoi" "fd-find" "greetd" "nodejs24-npm" "python" "python-pip" "tuigreet")
+            PACKAGES+=("chezmoi" "egl-utils" "fd-find" "greetd" "mesa-dr-drivers" "nodejs24-npm" "python" "python-pip" "tuigreet")
 
             if [ "$IS_VM" = true ]; then
-                PACKAGES+=("egl-utils" "mesa-dri-drivers" "mesa-demos" "spice-vdagent")
+                PACKAGES+=("spice-vdagent")
             fi
 
             # Hyprland is not in Fedora base repos. lionheartp/Hyprland COPR
@@ -386,12 +386,9 @@ elif [ -f /etc/os-release ]; then
                 sudo dnf -y copr enable lionheartp/Hyprland
 
                 PACKAGES+=(
-                    "hyprland" "hyprpaper" "hyprlock" "hypridle" "hyprland-guiutils"
-                    "xdg-desktop-portal-hyprland" "xdg-desktop-portal-gtk" "polkit"
-                    "qt5-qtwayland" "qt6-qtwayland" "gtk3" "gtk4"
-                    "pipewire" "pipewire-pulseaudio" "wireplumber" "NetworkManager"
-                    "google-noto-sans-fonts" "google-noto-emoji-fonts" "jetbrains-mono-fonts"
-                    "papirus-icon-theme" "brightnessctl" "xdg-utils" "uwsm"
+                    "hyprland" "hyprpaper" "hyprlock" "hypridle" "hyprshutdown" "hyprland-guiutils"
+                    "xdg-desktop-portal-hyprland" "polkit" "NetworkManager"
+                    "google-noto-sans-fonts" "xdg-utils" "uwsm"
                 )
             elif [ "$DISTRO" = "fedora" ]; then
                 warn "Fedora ${VERSION_ID:-?} is older than 43 — lionheartp/Hyprland COPR has no build for this release; Hyprland packages will not be installed"
@@ -411,23 +408,15 @@ elif [ -f /etc/os-release ]; then
                 "python" "python-pip" "gnupg" "openssh" "npm" "starship"
             )
 
-            # Hyprland desktop minimal set:
             PACKAGES+=(
-                "hyprland" "hyprpaper" "hyprlock" "hypridle"
-                "xdg-desktop-portal-hyprland" "xdg-desktop-portal-gtk"
-                "polkit" "polkit-gnome"
-                "qt5-wayland" "qt6-wayland" "gtk3" "gtk4"
-                "pipewire" "pipewire-pulse" "wireplumber"
-                "networkmanager"
-                "noto-fonts" "noto-fonts-emoji" "ttf-jetbrains-mono-nerd"
-                "ttf-meslo-nerd" "ttf-nerd-fonts-symbols" "papirus-icon-theme"
-                "brightnessctl" "xdg-utils"
-                "uwsm"
+                "hyprland" "hyprpaper" "hyprlock" "hypridle" "hyprshutdown" "xdg-desktop-portal-hyprland"
+                "polkit" "networkmanager" "noto-fonts" "ttf-jetbrains-mono-nerd" "mesa"
+                "ttf-meslo-nerd" "ttf-nerd-fonts-symbols" "xdg-utils" "uwsm" "mesa-utils"
             )
 
             if [ "$IS_VM" = true ]; then
-                log "VM detected — adding mesa + mesa-utils for virtio-gpu GL"
-                PACKAGES+=("mesa" "mesa-utils" "spice-vdagent")
+                log "VM detected — adding Spice Agent for virtio-gpu GL"
+                PACKAGES+=("spice-vdagent")
             fi
 
             IS_ARCH=true
@@ -512,7 +501,7 @@ EOF
 
         sudo apt-get update
 
-        HYPR_BACKPORTS=("hyprland" "hyprland-guiutils" "hyprpaper" "uwsm")
+        HYPR_BACKPORTS=("hyprland" "hyprland-guiutils" "hyprpaper" "hyprlock" "hyprshutdown" "hypridle" "hyprcursor" "uwsm")
         log "Installing from trixie-backports: ${HYPR_BACKPORTS[*]}"
         if sudo apt-get -y -t trixie-backports install "${HYPR_BACKPORTS[@]}"; then
             log "Hyprland stack installed from trixie-backports"
