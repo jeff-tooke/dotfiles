@@ -1,0 +1,4 @@
+{{- /* Homebrew prefix per-arch on macOS. Empty on Linux (no linuxbrew). */ -}}
+{{- if eq .chezmoi.os "darwin" -}}
+  {{- if eq .chezmoi.arch "arm64" -}}/opt/homebrew{{- else -}}/usr/local{{- end -}}
+{{- end -}}

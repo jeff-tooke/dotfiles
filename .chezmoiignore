@@ -20,6 +20,7 @@ linux/**
 *~
 *.swp
 .DS_Store
+.config/nvim/lazy-lock.json
 
 # macOS-only tools: ignore UNLESS we're on darwin.
 {{ if ne .chezmoi.os "darwin" }}
@@ -29,6 +30,7 @@ linux/**
 .config/ghostty/**
 .config/karabiner/**
 .config/sketchybar/**
+.hammerspoon/**
 {{ end }}
 
 # Linux-only tools: ignore IF we're on darwin.

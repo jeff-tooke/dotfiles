@@ -6,14 +6,13 @@ typeset -U path PATH          # auto-dedup; collapses any accidental duplicates
 
 # User-local binaries: claude, pip --user installs, etc.
 path=("$HOME/.local/bin" $path)
-
-# Flatpak user-exported CLI wrappers (Linux only; no-op on macOS via the guard)
+{{ if eq .chezmoi.os "linux" }}
+# Flatpak user-exported CLI wrappers (Linux only).
 [[ -d "$HOME/.local/share/flatpak/exports/bin" ]] && \
     path=("$HOME/.local/share/flatpak/exports/bin" $path)
+{{- end }}
+{{- if eq .chezmoi.os "darwin" }}
 
-# Homebrew: load from whichever prefix exists on this host.
-# /opt/homebrew = Apple Silicon · /usr/local = Intel Mac · linuxbrew = Linux.
-for _brew in /opt/homebrew/bin /usr/local/bin /home/linuxbrew/.linuxbrew/bin; do
-    [[ -x "$_brew/brew" ]] && eval "$("$_brew/brew" shellenv)" && break
-done
-unset _brew
+# Homebrew prefix is rendered per-arch by chezmoi (arm64 → /opt/homebrew, x86_64 → /usr/local).
+eval "$({{ template "brew_prefix" . }}/bin/brew shellenv)"
+{{- end }}

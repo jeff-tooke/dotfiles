@@ -3,3 +3,4 @@ sourceDir = "{{ .chezmoi.homeDir }}/.dotfiles"
 # Data section
 [data]
 hostname = "{{ .chezmoi.hostname }}"
+is_work_mac = {{ promptBoolOnce . "is_work_mac" "Is this your work Mac?" }}

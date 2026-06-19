@@ -90,4 +90,4 @@ set -g @resurrect-capture-pane-contents 'on'
 set -g @continuum-restore 'on'
 
 # Initialize TMUX plugin manager
-run '~/.tmux/plugins/tpm/tpm'
+run '{{ if eq .chezmoi.os "darwin" }}{{ template "brew_prefix" . }}/opt/tpm/share/tpm/tpm{{ else }}~/.tmux/plugins/tpm/tpm{{ end }}'
