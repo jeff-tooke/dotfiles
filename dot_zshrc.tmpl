@@ -20,8 +20,10 @@ if [ -n "$TMUX" ]; then
   # ---- Basic exports and setup ----
   export VISUAL=nvim
   export EDITOR=nvim
-  # export HOMEBREW_NO_ENV_HINTS=1
-  # eval "$(direnv hook zsh)"
+{{- if eq .chezmoi.os "darwin" }}
+  export HOMEBREW_NO_ENV_HINTS=1
+  eval "$(direnv hook zsh)"
+{{- end }}
 
 # ---- Source plugins and theme ----
   # source share/zsh-autosuggestions/zsh-autosuggestions.zsh
