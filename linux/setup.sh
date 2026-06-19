@@ -718,9 +718,9 @@ if [ "$RUN_STANDARD_LINUX_INSTALL" = true ]; then
 
     section "Installing applications for user only"
     FLATPAK_APPS=(
-      ai.opencode.opencode
       com.bitwarden.desktop
       app.zen_browser.zen
+      # ai.opencode.opencode
     )
 
     if ! command -v flatpak &>/dev/null; then
