@@ -3,10 +3,12 @@
     email = 46485515+jeff.tooke@users.noreply.github.com
 [includeIf "gitdir:~/projects/work/"]
     path = ~/projects/.gitconfig-work
+{{/* work-Mac credential helper disabled for now — re-enable with is_work_mac (see Follow-up)
 {{- if and (eq .chezmoi.os "darwin") .is_work_mac }}
 [credential]
     helper = osxkeychain
 {{- end }}
+*/}}
 [url "https://github.com/"]
     insteadOf = https://gh/
 [color]
