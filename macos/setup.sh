@@ -142,6 +142,8 @@ fi
 section "Installing Homebrew packages (brew bundle)"
 BREWFILE="$DOTFILES_DIR/setup/package-management/Brewfile"
 if [ -f "$BREWFILE" ]; then
+    brew trust nikitabobko/tap
+    brew trust felixkratz/formulae
     brew bundle --file="$BREWFILE" \
         && log "brew bundle complete" \
         || warn "brew bundle reported failures — check the log for individual formulae/casks"
