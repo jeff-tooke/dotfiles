@@ -4,7 +4,7 @@ This is a guide to bootstrapping a new mac from scratch
 
 ## Install dependencies
 
-The first thing to do is install the tools used for system configuration. 
+The first thing to do is install the tools used for system configuration.
 Open the terminal application and run the following commands:
 
 ```bash
@@ -18,8 +18,8 @@ echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> /Users/$USER/.zprofile
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
 # Install nix-darwin - https://mynixos.com/nix-darwin
-curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install macos
-
+#curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install macos
+curl -L https://nixos.org/nix/install | sh
 . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 ```
 
@@ -37,7 +37,7 @@ git clone --recurse-submodules https://github.com/$GITHUB_USERNAME/dotfiles.git 
 
 # Apply system default settings
 cd ~/.dotfiles/setup/system-settings
-sudo nix run nix-darwin -- switch --flake .
+sudo nix --extra-experimental-features "nix-xommand flakes" run nix-darwin -- switch --flake .
 
 # Install default packages
 cd ~/.dotfiles/setup/package-management
@@ -52,13 +52,14 @@ git checkout personal
 # Install machine-specific packages
 brew bundle --file=setup/package-management/Brewfile
 
-# Apply dotfiles 
+# Apply dotfiles
 cd ~
 chezmoi init --source ~/.dotfiles
 chezmoi apply --source ~/.dotfiles
 ```
 
 ## Post-installation configuration
+
 - Start aerospace from Applications and check it is added background login items.
 - Add Raycast and Hammerspoon to login items
 - Allow `corelocationcli` app to run in Privacy and Security settings

@@ -1,1 +1,8 @@
-/Users/jeff/.dotfiles//private/dot_hammerspoon/config/core/constants.lua
+return {
+  homeSSID = "vodafone09D8FD",
+  homeMonitorName = "LG ULTRAWIDE",
+  layout = {
+    uk = "British",
+    au = "Australian"
+  }
+}
