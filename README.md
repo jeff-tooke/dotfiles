@@ -4,13 +4,25 @@ This is a guide to bootstrapping a new mac from scratch
 
 ## Install dependencies
 
-The first thing to do is install the tools used for system configuration.
-Open the terminal application and run the following commands:
+A clean macOS has no real `git` — only a `/usr/bin/git` stub that opens the
+Xcode Command Line Tools GUI installer the first time it runs. To avoid that
+chicken-and-egg (no git → can't clone → can't run setup), open the terminal
+application and run this single command first. It installs the Command Line
+Tools, waits for the GUI install to finish, then clones the repo:
 
 ```bash
-# Install xcode cli tools
-xcode-select --install
+xcode-select --install 2>/dev/null; \
+  until xcode-select -p >/dev/null 2>&1; do sleep 10; done; \
+  git clone https://github.com/$GITHUB_USERNAME/dotfiles.git ~/dotfiles
+```
 
+From here you can run the scripted bootstrap (`~/.dotfiles/macos/setup.sh`), or
+follow the manual steps below.
+
+The next thing to do is install the remaining tools used for system
+configuration:
+
+```bash
 # Install homebrew - https://brew.sh/
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 echo >> /Users/$USER/.zprofile
@@ -27,17 +39,14 @@ curl -L https://nixos.org/nix/install | sh
 
 After installing dependencies for system configuration proceed to next steps
 
+The repo was already cloned to `~/.dotfiles` in the bootstrap step above (use
+the plain `git clone` without `--recurse-submodules` there if you are not using
+the private git sub-module).
+
 ```bash
-# Ensure you are in home directory and clone dotfiles repo
-cd ~
-git clone --recurse-submodules https://github.com/$GITHUB_USERNAME/dotfiles.git ~/.dotfiles
-
-# NOTE: You should just use this if not utilising private git sub-module
-# git clone https://github.com/$GITHUB_USERNAME/dotfiles.git ~/.dotfiles
-
 # Apply system default settings
 cd ~/.dotfiles/setup/system-settings
-sudo nix --extra-experimental-features "nix-xommand flakes" run nix-darwin -- switch --flake .
+sudo nix --extra-experimental-features "nix-command flakes" run nix-darwin -- switch --flake .
 
 # Install default packages
 cd ~/.dotfiles/setup/package-management

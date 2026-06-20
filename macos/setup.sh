@@ -6,18 +6,27 @@
 # Prerequisites (must be true BEFORE running this script)
 #   - A fresh/clean user account on macOS.
 #   - Working internet connection.
-#   - This repo cloned to ~/.dotfiles, e.g.:
-#       git clone --recurse-submodules https://github.com/<user>/dotfiles ~/.dotfiles
 #   - Run as the target user (NOT root); the script will sudo when needed.
+#
+# Bootstrapping git/the repo (the chicken-and-egg):
+#   A clean macOS has no real git — only a /usr/bin/git stub that pops the
+#   Xcode Command Line Tools GUI installer the first time it is invoked. So you
+#   can't `git clone` this repo until the tools exist. Break the cycle with this
+#   one pre-clone command in a fresh terminal (installs the CLT, waits for the
+#   GUI install to finish, then clones):
+#
+#       xcode-select --install 2>/dev/null; \
+#         until xcode-select -p >/dev/null 2>&1; do sleep 10; done; \
+#         git clone https://github.com/<user>/dotfiles ~/dotfiles
+#
+#   Then run this script: ~/.dotfiles/macos/setup.sh
+#
+#   Section 1 below re-checks/installs the CLT and is therefore a
+#   safety/idempotency net rather than the primary install path.
 #
 # Parts of macOS provisioning cannot be fully scripted (GUI dialogs, TCC /
 # Privacy & Security approvals, Login Items). See macos/README.md for the
 # manual steps and known interactive challenges.
-#
-# NOTE: This is intentionally a trimmed, macOS-only rewrite of the multi-distro
-# linux/setup.sh. It reuses that script's helpers, section style, and variable
-# conventions (log/warn/err/section, LOG_FILE, DISTRO) so the body can later be
-# folded back into the `OSTYPE == darwin*` branch of the unified script.
 # ============================================================================
 
 set -eE
@@ -126,6 +135,16 @@ fi
 # =============================================================================
 section "Applying nix-darwin system settings"
 if [ -d "$DOTFILES_DIR/setup/system-settings" ]; then
+    # nix-darwin refuses to activate if it would overwrite pre-existing files in
+    # /etc that it doesn't manage (the stock macOS /etc/bashrc, /etc/zshrc, etc).
+    # It expects them renamed with a .before-nix-darwin suffix; do that for the
+    # files it touches so the first switch on a clean machine doesn't abort.
+    for f in bashrc zshrc zprofile zshenv bash.bashrc; do
+        if [ -e "/etc/$f" ] && [ ! -e "/etc/$f.before-nix-darwin" ]; then
+            sudo mv "/etc/$f" "/etc/$f.before-nix-darwin" \
+                && log "Renamed /etc/$f -> /etc/$f.before-nix-darwin"
+        fi
+    done
     (
         cd "$DOTFILES_DIR/setup/system-settings"
         sudo nix --extra-experimental-features "nix-command flakes" \
