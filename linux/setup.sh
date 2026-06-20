@@ -501,7 +501,7 @@ EOF
 
         sudo apt-get update
 
-        HYPR_BACKPORTS=("hyprland" "hyprland-guiutils" "hyprpaper" "hyprlock" "hyprshutdown" "hypridle" "hyprcursor" "uwsm")
+        HYPR_BACKPORTS=("hyprland" "hyprland-guiutils" "hyprpaper" "hyprlock" "hyprshutdown" "hypridle" "uwsm")
         log "Installing from trixie-backports: ${HYPR_BACKPORTS[*]}"
         if sudo apt-get -y -t trixie-backports install "${HYPR_BACKPORTS[@]}"; then
             log "Hyprland stack installed from trixie-backports"
