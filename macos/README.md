@@ -1,9 +1,11 @@
-# macOS provisioning (`macos/setup.sh`)
+# macOS provisioning
 
-A best-effort, scripted bootstrap for a fresh macOS user account. It is a
-trimmed, macOS-only rewrite of the multi-distro `linux/setup.sh`, kept aligned
-with that script's helpers and structure so it can later be folded back into the
-unified script's `OSTYPE == darwin*` branch.
+A best-effort, scripted bootstrap for a fresh macOS user account. The macOS flow
+now lives in `setup/os/macos.sh` and is driven by the unified, cross-platform
+entry point at the repo root (`setup.sh`), which detects the OS and dispatches.
+Shared helpers live in `setup/lib/common.sh`; the package list is
+`setup/package-management/Brewfile`. `macos/setup.sh` is a thin compatibility
+shim that execs the root `setup.sh`.
 
 ## Prerequisites
 
@@ -18,8 +20,10 @@ unified script's `OSTYPE == darwin*` branch.
 ## Run
 
 ```bash
-~/.dotfiles/macos/setup.sh
+~/.dotfiles/setup.sh
 ```
+
+(`~/.dotfiles/macos/setup.sh` still works — it's a shim that execs the above.)
 
 The full run is logged to `~/system-setup-<timestamp>.log`.
 
@@ -72,9 +76,10 @@ These mirror the top-level `README.md` and **must be done by hand**:
 - Enable **Location Services** in System Settings and grant `corelocationcli`
   access.
 
-## Merge-back note
+## Structure note
 
-This script deliberately reuses the unified script's logging helpers
-(`log/warn/err/section`), `LOG_FILE`/`tee` setup, and section layout. When the
-macOS flow is stable, its body can drop into the `if [[ "$OSTYPE" == "darwin"* ]]`
-branch of `linux/setup.sh` with minimal changes.
+The macOS body (`setup/os/macos.sh`) is sourced by the root `setup.sh` and
+relies on the shared helpers in `setup/lib/common.sh` (`log/warn/err/section`,
+`start_sudo_keepalive`, `apply_chezmoi`, `bootstrap_tpm`, `post_install_bat`).
+NixOS is the remaining platform not yet folded into the dispatcher — it has a
+placeholder module at `setup/os/nixos.sh`.

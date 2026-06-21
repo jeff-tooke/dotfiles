@@ -1,5 +1,11 @@
 # Prerequisites (must be true BEFORE running this script)
 
+Provisioning is driven by the unified, cross-platform entry point at the repo
+root: **`~/dotfiles/setup.sh`**. It detects the distro and dispatches to
+`setup/os/linux.sh` (shared helpers in `setup/lib/common.sh`; package lists in
+`setup/packages/*.txt`). The old `~/dotfiles/linux/setup.sh` path still works —
+it's a shim that execs the root script.
+
 ---
 
 ## Arch:
@@ -39,7 +45,7 @@ pacman -Sy --needed sudo git
    exit
    su - <user>             #
    git clone https://github.com/<github-user>/dotfiles.git
-   ~/dotfiles/linux/setup.sh
+   ~/dotfiles/setup.sh
 ```
 
 ## Debian Trixie:
@@ -72,7 +78,7 @@ apt update -y && apt install -y sudo git
    exit
    su - <user>             #
    git clone https://github.com/<github-user>/dotfiles.git
-   ~/dotfiles/linux/setup.sh
+   ~/dotfiles/setup.sh
 
 ## Fedora 44:
 
@@ -85,7 +91,7 @@ These packages installed via dnf: git
 ```bash
 sudo dnf update -y && sudo dns install git -y
 git clone https://github.com/<github-user>/dotfiles
-~/dotfiles/linux.setup.sh
+~/dotfiles/setup.sh
 ````
 
 # - Run as the target user (NOT root); the script will sudo when needed
