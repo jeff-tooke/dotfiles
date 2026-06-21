@@ -4,20 +4,16 @@ alias ....='cd ../../../'
 alias .....='cd ../../../../'
 alias c=clear
 alias cat='bat'
-# alias cc='claude'
-# alias dkm='lazydocker'
 alias gac='git add -A && git commit -m'
 alias gb='git branch'
 alias gbd='git branch -D'
 alias gco='git checkout'
 alias gd='git diff -w'
 alias gds='git diff -w --staged'
-# alias ge='gemini'
 alias gg='lazygit'
 alias gla=pretty_git_log_all
 alias grep='rg'
 alias gst='git rev-parse --git-dir > /dev/null 2>&1 && git status || eza'
-# alias hf='defaults write com.apple.finder AppleShowAllFiles NO; killall Finder /System/Library/CoreServices/Finder.app'
 alias h='my_history'
 alias hc='my_history -c'
 alias hs='my_history | grep'
@@ -33,11 +29,14 @@ alias ls='eza -ah --icons --no-permissions --group-directories-first --colour=al
 alias lsa='eza -lah --icons --group-directories-first --colour=always'
 alias lst='eza -T --icons --colour=always'
 alias nv='nvim'
-alias oc='opencode'
 alias ping='ping -c 3'
 alias pf='btop'
-# alias rm=trash
-# alias sf='defaults write com.apple.finder AppleShowAllFiles YES; killall Finder /System/Library/CoreServices/Finder.app'
 alias sys='fastfetch'
 alias tf='terraform'
 alias vim='nvim'
+{{ if eq .chezmoi.os "darwin" -}}
+# macOS-only: toggle Finder hidden files and route rm through trash
+alias hf='defaults write com.apple.finder AppleShowAllFiles NO; killall Finder /System/Library/CoreServices/Finder.app'
+alias sf='defaults write com.apple.finder AppleShowAllFiles YES; killall Finder /System/Library/CoreServices/Finder.app'
+alias rm=trash
+{{- end }}
