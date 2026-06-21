@@ -1,5 +1,4 @@
 -- ~/.config/hypr/hyprland.lua
--- NixOS VM — Hyprland 0.55 Lua config
 -- Catppuccin Mocha
 
 ------------------
@@ -48,8 +47,8 @@ hl.config({
 		rounding = 8,
 		shadow = {
 			enabled = true,
-			range = 8,
-			render_power = 2,
+			range = 4,
+			render_power = 3,
 			color = 0xee1e1e2e,
 		},
 		blur = {
@@ -60,7 +59,7 @@ hl.config({
 		},
 	},
 	animations = {
-		enabled = true,
+		enabled = false,
 	},
 	dwindle = {
 		preserve_split = true,
@@ -68,7 +67,12 @@ hl.config({
 	misc = {
 		force_default_wallpaper = 0,
 		disable_hyprland_logo = true,
+    disable_splash_rendering = true,
 	},
+  ecosystem = {
+    no_update_news = true,
+    no_donation_nag = true,
+  },
 	input = {
 		kb_layout = "us",
 		follow_mouse = 1,
@@ -83,8 +87,11 @@ local mod = "SUPER"
 
 -- Core
 hl.bind(mod .. " + Return", hl.dsp.exec_cmd("$HOME/.local/bin/kitty-gl"))
+hl.bind(mod .. " + B", hl.dsp.exec_cmd("zen"))
+hl.bind(mod .. " + E", hl.dsp.exec_cmd("thunar"))
+hl.bind(mod .. " + W", hl.dsp.exec_cmd("bitwarden")
 hl.bind(mod .. " + Space", hl.dsp.exec_cmd("wofi --show drun"))
-hl.bind(mod .. " + X", hl.dsp.exec_cmd("swaylock -f -c 1e1e1e"))
+hl.bind(mod .. " + X", hl.dsp.exec_cmd("hyprlock"))
 hl.bind(mod .. " + Q", hl.dsp.window.close())
 hl.bind(mod .. " + SHIFT + Q", hl.dsp.exit())
 hl.bind(mod .. " + F", hl.dsp.window.fullscreen({ mode = "fullscreen" }))
@@ -104,7 +111,7 @@ hl.bind(mod .. " + SHIFT + K", hl.dsp.window.move({ direction = "up" }))
 hl.bind(mod .. " + SHIFT + J", hl.dsp.window.move({ direction = "down" }))
 
 -- Workspaces
-for i = 1, 9 do
+for i = 1, 5 do
 	hl.bind(mod .. " + " .. i, hl.dsp.focus({ workspace = i }))
 	hl.bind(mod .. " + SHIFT + " .. i, hl.dsp.window.move({ workspace = i }))
 end
@@ -123,6 +130,29 @@ hl.bind("Print", hl.dsp.exec_cmd('grim -g "$(slurp)" - | wl-copy'))
 ----------------------
 ---- WINDOW RULES ----
 ----------------------
+hl.window_rule({
+	name = "kitty-workspace-1",
+	match = { class = "^kitty$" },
+	workspace = 1,
+})
+hl.window_rule({
+	name = "zen-workspace-2",
+	match = { class = "^zen$|^zen-browser$" },
+	workspace = 2,
+})
+hl.window_rule({
+	name = "thunar-workspace-3",
+	match = { class = "^thunar$|^Thunar$" },
+	workspace = 3,
+})
+-- Bitwarden floating
+hl.window_rule({
+	name = "bitwarden-float",
+	match = { class = "^bitwarden$" },
+	float = true,
+	size = { w = 900, h = 700 },
+})
+
 hl.window_rule({
 	name = "suppress-maximize",
 	match = { class = ".*" },
