@@ -67,12 +67,12 @@ hl.config({
 	misc = {
 		force_default_wallpaper = 0,
 		disable_hyprland_logo = true,
-    disable_splash_rendering = true,
+		disable_splash_rendering = true,
 	},
-  ecosystem = {
-    no_update_news = true,
-    no_donation_nag = true,
-  },
+	ecosystem = {
+		no_update_news = true,
+		no_donation_nag = true,
+	},
 	input = {
 		kb_layout = "us",
 		follow_mouse = 1,
@@ -89,7 +89,7 @@ local mod = "SUPER"
 hl.bind(mod .. " + Return", hl.dsp.exec_cmd("$HOME/.local/bin/kitty-gl"))
 hl.bind(mod .. " + B", hl.dsp.exec_cmd("zen"))
 hl.bind(mod .. " + E", hl.dsp.exec_cmd("thunar"))
-hl.bind(mod .. " + W", hl.dsp.exec_cmd("bitwarden")
+hl.bind(mod .. " + W", hl.dsp.exec_cmd("bitwarden"))
 hl.bind(mod .. " + Space", hl.dsp.exec_cmd("wofi --show drun"))
 hl.bind(mod .. " + X", hl.dsp.exec_cmd("hyprlock"))
 hl.bind(mod .. " + Q", hl.dsp.window.close())
