@@ -1,4 +1,3 @@
--- ~/.config/hypr/hyprland.lua
 -- Catppuccin Mocha
 
 ------------------
@@ -150,7 +149,7 @@ hl.window_rule({
 	name = "bitwarden-float",
 	match = { class = "^bitwarden$" },
 	float = true,
-	size = { w = 900, h = 700 },
+	center = true,
 })
 
 hl.window_rule({

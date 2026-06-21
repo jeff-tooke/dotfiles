@@ -282,7 +282,7 @@ enable_networkmanager() {
 # via a release-binary install in a later step.
 PACKAGES=(
     "bat" "btop" "curl" "dunst" "eza" "fastfetch" "flatpak" "foot" "fzf" "git" "grim" "jq" "kitty" "make" "neovim"
-    "podman" "podman-compose" "ripgrep" "slurp" "tmux" "unzip" "waybar" "wget" "wl-clipboard" "wofi" "zoxide" "zsh"
+    "podman" "podman-compose" "ripgrep" "slurp" "thunar" "tmux" "unzip" "waybar" "wget" "wl-clipboard" "wofi" "zoxide" "zsh"
     "zsh-autosuggestions" "zsh-syntax-highlighting"
 )
 
