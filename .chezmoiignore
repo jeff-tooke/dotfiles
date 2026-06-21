@@ -40,4 +40,6 @@ linux/**
 .config/hypr/**
 .config/waybar/**
 .config/wofi/**
+.local/bin/kitty-gl
+.local/share/applications/kitty.desktop
 {{ end }}

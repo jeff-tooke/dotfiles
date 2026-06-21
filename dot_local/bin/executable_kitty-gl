@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Software GL for kitty in VMs only.
+if systemd-detect-virt --vm --quiet; then
+	export LIBGL_ALWAYS_SOFTWARE=1
+fi
+exec kitty "$@"

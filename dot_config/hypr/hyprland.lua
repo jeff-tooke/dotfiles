@@ -82,7 +82,7 @@ hl.config({
 local mod = "SUPER"
 
 -- Core
-hl.bind(mod .. " + Return", hl.dsp.exec_cmd("foot"))
+hl.bind(mod .. " + Return", hl.dsp.exec_cmd("$HOME/.local/bin/kitty-gl"))
 hl.bind(mod .. " + Space", hl.dsp.exec_cmd("wofi --show drun"))
 hl.bind(mod .. " + X", hl.dsp.exec_cmd("swaylock -f -c 1e1e1e"))
 hl.bind(mod .. " + Q", hl.dsp.window.close())
