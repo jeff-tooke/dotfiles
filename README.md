@@ -4,7 +4,7 @@ Personal dotfiles managed with [chezmoi](https://chezmoi.io).
 
 The chezmoi source layout lives here (`dot_*`, `dot_config/`, `dot_hammerspoon/`,
 `dot_local/`, `.chezmoitemplates/`). OS-conditional ignores are in
-`.chezmoiignore`; machine-specific overrides live in the `private` submodule.
+`.chezmoiignore`.
 
 ## Apply
 
@@ -12,9 +12,7 @@ The chezmoi source layout lives here (`dot_*`, `dot_config/`, `dot_hammerspoon/`
 chezmoi init --apply jeff-tooke
 ```
 
-This clones the repo into `~/.local/share/chezmoi` and applies it. The `private`
-submodule uses an SSH URL, so on a keyless machine add
-`--recurse-submodules=false` and pull it once SSH keys are in place.
+This clones the repo into `~/.local/share/chezmoi` and applies it.
 
 ## Provisioning
 
