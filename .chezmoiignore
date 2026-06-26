@@ -1,7 +1,5 @@
-# Exclude readme, setup folder and its contents
-setup/**
+# Exclude the repo readme (provisioning now lives in the system-builder repo)
 README.md
-linux/**
 
 # Exclude anything backup related
 **/*backup*
