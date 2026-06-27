@@ -41,9 +41,9 @@ if [ -n "$TMUX" ]; then
   # Load modular Zsh files if they exist
   ZSH_CONFIG_DIR="$HOME/.config/zsh"
   [[ -f "$ZSH_CONFIG_DIR/aliases.zsh" ]] && source "$ZSH_CONFIG_DIR/aliases.zsh"
-  [[ -f "$ZSH_CONFIG_DIR/env-specific-aliases.zsh" ]] && source "$ZSH_CONFIG_DIR/env-specific-aliases.zsh"
   [[ -f "$ZSH_CONFIG_DIR/git.zsh" ]] && source "$ZSH_CONFIG_DIR/git.zsh"
   [[ -f "$ZSH_CONFIG_DIR/history.zsh" ]] && source "$ZSH_CONFIG_DIR/history.zsh"
+  [[ -f "$ZSH_CONFIG_DIR/dotfiles.zsh" ]] && source "$ZSH_CONFIG_DIR/dotfiles.zsh"
 
   # ---- FZF ----
   eval "$(fzf --zsh)"

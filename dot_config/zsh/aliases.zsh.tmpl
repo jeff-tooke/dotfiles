@@ -4,6 +4,13 @@ alias ....='cd ../../../'
 alias .....='cd ../../../../'
 alias c=clear
 alias cat='bat'
+# ---- Dotfiles (chezmoi) ----
+alias dfe='chezmoi edit --apply'   # edit a managed file's source (template-safe) and apply
+alias dfp=df_push                  # stage + commit + push the source repo (see dotfiles.zsh)
+alias dfu='chezmoi update'         # pull + apply (sync from other machines)
+alias dfd='chezmoi diff'           # preview pending source -> home changes
+alias dfs='chezmoi status'         # compact status
+alias dfa='chezmoi apply'          # re-render source -> home
 alias gac='git add -A && git commit -m'
 alias gb='git branch'
 alias gbc='git checkout -b'
