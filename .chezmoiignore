@@ -1,5 +1,6 @@
-# Exclude the repo readme (provisioning now lives in the system-builder repo)
+# Exclude repo-only docs (kept in the repo, not applied to $HOME)
 README.md
+TODO.md
 
 # Exclude anything backup related
 **/*backup*
