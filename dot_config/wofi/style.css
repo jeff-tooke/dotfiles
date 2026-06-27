@@ -1,0 +1,41 @@
+/* Catppuccin Mocha */
+@define-color base     #1e1e2e;
+@define-color surface0 #313244;
+@define-color surface1 #45475a;
+@define-color text     #cdd6f4;
+@define-color subtext1 #bac2de;
+@define-color blue     #89b4fa;
+
+window {
+  background-color: @base;
+  border-radius: 12px;
+  border: 2px solid @surface1;
+  font-family: "JetBrainsMono Nerd Font", "Inter", sans-serif;
+  font-size: 14px;
+}
+
+#input {
+  background-color: @surface0;
+  color: @text;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 12px;
+}
+
+#input:focus { border: 1px solid @blue; }
+
+#scroll { margin: 0 8px 8px 8px; }
+
+#inner-box { background-color: transparent; }
+
+.entry {
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: @subtext1;
+}
+
+.entry:selected {
+  background-color: @surface0;
+  color: @blue;
+}

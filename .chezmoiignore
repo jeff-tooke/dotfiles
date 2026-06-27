@@ -1,5 +1,4 @@
-# Exclude readme, setup folder and its contents
-setup/**
+# Exclude the repo readme (provisioning now lives in the system-builder repo)
 README.md
 
 # Exclude anything backup related
@@ -8,9 +7,34 @@ README.md
 # Exclude log files
 **/*.log
 
-# Exclude private submodule
-/private
-
 # Exclude encryption keys and config
 .sops.yaml
 .config/sops/age/keys.txt
+
+# Editor/OS cruft, always ignored
+*~
+*.swp
+.DS_Store
+.config/nvim/lazy-lock.json
+
+# macOS-only tools: ignore UNLESS we're on darwin.
+{{ if ne .chezmoi.os "darwin" }}
+.config/aerospace/**
+.config/borders/**
+.config/direnv/**
+.config/ghostty/**
+.config/karabiner/**
+.config/sketchybar/**
+.hammerspoon/**
+{{ end }}
+
+# Linux-only tools: ignore IF we're on darwin.
+{{ if eq .chezmoi.os "darwin" }}
+.config/dunst/**
+.config/foot/**
+.config/hypr/**
+.config/waybar/**
+.config/wofi/**
+.local/bin/kitty-gl
+.local/share/applications/kitty.desktop
+{{ end }}

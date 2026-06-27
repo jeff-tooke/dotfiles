@@ -1,4 +1,3 @@
-set-environment -g PATH "/opt/homebrew/bin:/bin:/usr/bin"   # use homebrew path
 set -g default-terminal "tmux-256color"
 set -ag terminal-overrides ",xterm-256color:RGB"
 set -g status-interval 1    # make status bar more responsive
@@ -43,16 +42,13 @@ bind -r l resize-pane -R
 
 set-window-option -g mode-keys vi
 
-bind-key -T copy-mode-vi 'v' send -X begin-selection # start selecting text with "v"
-bind-key -T copy-mode-vi 'y' send -X copy-selection # copy text with "y"
+bind-key -T copy-mode-vi 'v' send -X begin-selection
+bind-key -T copy-mode-vi 'y' send -X copy-selection
 
-unbind -T copy-mode-vi MouseDragEnd1Pane # don't exit copy mode when dragging with mouse
+unbind -T copy-mode-vi MouseDragEnd1Pane
 
 # remove delay for exiting insert mode with ESC in Neovim
 set -sg escape-time 10
-
-# Launch Opencode in a Popup in current directory
-bind -n C-o popup -E -d "#{pane_current_path}" -w 70% -h 75% "EDITOR=nvim /opt/homebrew/bin/opencode"
 
 # plugin manager
 set -g @plugin 'tmux-plugins/tpm'
@@ -94,4 +90,4 @@ set -g @resurrect-capture-pane-contents 'on'
 set -g @continuum-restore 'on'
 
 # Initialize TMUX plugin manager
-run '/opt/homebrew/opt/tpm/share/tpm/tpm'
+run '{{ if eq .chezmoi.os "darwin" }}{{ template "brew_prefix" . }}/opt/tpm/share/tpm/tpm{{ else }}~/.tmux/plugins/tpm/tpm{{ end }}'

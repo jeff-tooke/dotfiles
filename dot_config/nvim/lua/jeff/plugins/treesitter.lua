@@ -1,12 +1,13 @@
 return {
   "nvim-treesitter/nvim-treesitter",
+  branch = "master",
   event = { "BufReadPre", "BufNewfile" },
   build = ":TSUpdate",
   config = function()
-    local treesitter = require "nvim-treesitter.configs"
+    local treesitter = require("nvim-treesitter.configs")
 
     -- configure treesitter
-    treesitter.setup {
+    treesitter.setup({
       highlight = {
         enable = true,
       },
@@ -38,7 +39,7 @@ return {
           node_decremental = "<bs>",
         },
       },
-    }
+    })
 
     -- set helm and chezmoi templates as gotmpl filetype
     vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {

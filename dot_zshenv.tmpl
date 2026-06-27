@@ -1,0 +1,18 @@
+# ~/.zshenv — read by every zsh: login, interactive, and non-interactive scripts.
+# PATH and environment only. Interactive things (aliases, prompt, keybinds)
+# stay in .zshrc / your modular *.zsh files.
+
+typeset -U path PATH          # auto-dedup; collapses any accidental duplicates
+
+# User-local binaries: claude, pip --user installs, etc.
+path=("$HOME/.local/bin" $path)
+{{ if eq .chezmoi.os "linux" }}
+# Flatpak user-exported CLI wrappers (Linux only).
+[[ -d "$HOME/.local/share/flatpak/exports/bin" ]] && \
+    path=("$HOME/.local/share/flatpak/exports/bin" $path)
+{{- end }}
+{{- if eq .chezmoi.os "darwin" }}
+
+# Homebrew prefix is rendered per-arch by chezmoi (arm64 → /opt/homebrew, x86_64 → /usr/local).
+eval "$({{ template "brew_prefix" . }}/bin/brew shellenv)"
+{{- end }}

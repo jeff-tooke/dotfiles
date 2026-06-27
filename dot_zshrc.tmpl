@@ -20,28 +20,14 @@ if [ -n "$TMUX" ]; then
   # ---- Basic exports and setup ----
   export VISUAL=nvim
   export EDITOR=nvim
+{{- if eq .chezmoi.os "darwin" }}
   export HOMEBREW_NO_ENV_HINTS=1
   eval "$(direnv hook zsh)"
-# # ---- Auto-launch tmux silently if not already inside ----
-# if [[ -z "$TMUX" && -z "$NVIM" ]]; then
-#   exec tmux new-session -A -s main >/dev/null 2>&1
-# fi
-#
-# # ---- Only run the rest of shell config inside tmux ----
-# if [ -n "$TMUX" ]; then
-#   # ---- Basic exports and setup ----
-#   export VISUAL=nvim
-#   export EDITOR=nvim
-#   export HOMEBREW_NO_ENV_HINTS=1
-#   eval "$(direnv hook zsh)"
-
-# ---- Update $PATH with useful locations ----
-  export PATH="$PATH:/usr/sbin:/sbin"
-  export PATH="/opt/homebrew/opt/python@3/libexec/bin:$PATH"
+{{- end }}
 
 # ---- Source plugins and theme ----
-  source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-  source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+  # source share/zsh-autosuggestions/zsh-autosuggestions.zsh
+  # source share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
   # Load modular Zsh files if they exist
   ZSH_CONFIG_DIR="$HOME/.config/zsh"
@@ -62,16 +48,7 @@ if [ -n "$TMUX" ]; then
     fd "$search_term" --type f "$search_dir" | fzf --preview 'bat --style=numbers --color=always {} | less -R' --preview-window=right:50%
   }
 
-  # ---- Go Workspace ----
-  export GOPATH="$HOME/go"
-  export GOBIN="$GOPATH/bin"
-  export PATH="$PATH:$GOBIN"
-
   # ---- Zoxide ----
   eval "$(zoxide init zsh --cmd cd)"
 
-  # ---- Brew completions (already safe because compinit ran earlier) ----
-  if type brew &>/dev/null; then
-    FPATH=$(brew --prefix)/share/zsh-completions:$FPATH
-  fi
 fi
