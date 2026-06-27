@@ -26,8 +26,17 @@ if [ -n "$TMUX" ]; then
 {{- end }}
 
 # ---- Source plugins and theme ----
-  # source share/zsh-autosuggestions/zsh-autosuggestions.zsh
-  # source share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+{{- if eq .chezmoi.os "darwin" }}
+  [[ -f {{ template "brew_prefix" . }}/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && \
+    source {{ template "brew_prefix" . }}/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+  [[ -f {{ template "brew_prefix" . }}/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && \
+    source {{ template "brew_prefix" . }}/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+{{- else }}
+  [[ -f /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && \
+    source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+  [[ -f /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && \
+    source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+{{- end }}
 
   # Load modular Zsh files if they exist
   ZSH_CONFIG_DIR="$HOME/.config/zsh"

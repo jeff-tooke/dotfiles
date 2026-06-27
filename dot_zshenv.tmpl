@@ -15,4 +15,10 @@ path=("$HOME/.local/bin" $path)
 
 # Homebrew prefix is rendered per-arch by chezmoi (arm64 → /opt/homebrew, x86_64 → /usr/local).
 eval "$({{ template "brew_prefix" . }}/bin/brew shellenv)"
+
+# Homebrew python@3 shims (unversioned python/pip).
+path=({{ template "brew_prefix" . }}/opt/python@3/libexec/bin $path)
+
+# Homebrew zsh-completions on fpath (set before compinit runs in .zshrc).
+fpath=({{ template "brew_prefix" . }}/share/zsh-completions $fpath)
 {{- end }}
