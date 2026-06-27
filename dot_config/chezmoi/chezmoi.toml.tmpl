@@ -1,9 +1,3 @@
-# No sourceDir override: chezmoi uses its managed clone at
-# ~/.local/share/chezmoi (populated by `chezmoi init --apply jeff-tooke`).
-
 # Data section
 [data]
 hostname = "{{ .chezmoi.hostname }}"
-# is_work_mac detection disabled for now — promptBoolOnce only works during `chezmoi init`
-# from a root .chezmoi.toml.tmpl, not in this managed file. Re-enable per Follow-up below.
-# is_work_mac = {{/* promptBoolOnce . "is_work_mac" "Is this your work Mac?" */}}
