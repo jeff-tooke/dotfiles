@@ -11,6 +11,17 @@ alias dfu='chezmoi update'         # pull + apply (sync from other machines)
 alias dfd='chezmoi diff'           # preview pending source -> home changes
 alias dfs='chezmoi status'         # compact status
 alias dfa='chezmoi apply'          # re-render source -> home
+
+# TODO: add NixOS management aliases (nx*) mirroring the df* set above.
+#   Manage the system-builder flake at ~/dev/system-builder/setup/system-settings#nixos.
+#   Guard with `if (( $+commands[nixos-rebuild] ))` so they only load on NixOS.
+#     nxa  nixos-rebuild switch (apply)      nxe  edit modules/nixos/default.nix
+#     nxd  build + nvd diff (preview)        nxs  nixos-rebuild list-generations
+#     nxu  nix flake update                  nxp  commit + push system-builder
+#     nxt/nxb  test/boot   nxcd  cd to flake   nxgc  nix-collect-garbage -d
+#   nxp MUST exclude the machine-specific hardware-configuration.nix, e.g.
+#     git add -A -- ':!*/hardware-configuration.nix'   (nxd implies adding nvd to the flake)
+
 alias gac='git add -A && git commit -m'
 alias gb='git branch'
 alias gbc='git checkout -b'

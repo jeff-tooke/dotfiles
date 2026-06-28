@@ -12,6 +12,16 @@ TODO.md
 .sops.yaml
 .config/sops/age/keys.txt
 
+# Never manage Claude/OpenCode runtime config — may hold tokens / private URLs.
+# File-specific on purpose: must NOT match .claude/agents/** or .config/opencode/agent/**.
+.claude/settings.json
+.claude/settings.local.json
+.claude/.credentials.json
+.claude/history.jsonl
+.claude/.superclaude-metadata.json
+.claude/mcp-needs-auth-cache.json
+.config/opencode/opencode.json
+
 # Editor/OS cruft, always ignored
 *~
 *.swp

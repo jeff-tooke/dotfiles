@@ -1,0 +1,30 @@
+{{ template "rules/global-rules.md" . }}
+
+# Shell environment (applies to every Bash tool call)
+
+The interactive shell is zsh with these aliases active in the Bash tool's
+environment. Account for them when running commands:
+
+- **`rm` is aliased to `trash`** — it moves to the trash instead of unlinking.
+  Do **not** pass `-r`/`-f`/`-rf`; `trash` rejects those flags and the command
+  fails. Just `rm <path>` (it handles directories and never prompts).
+- **`grep` is aliased to `rg`** (ripgrep). Use ripgrep syntax/flags, not BSD/GNU
+  grep flags. For a literal POSIX grep, invoke `command grep` or `/usr/bin/grep`.
+- **`cd` is aliased to `zoxide`** — plain `cd <dir>` works, but bare `cd` may emit
+  a zoxide "doctor" notice; ignore that noise in command output. Set
+  `_ZO_DOCTOR=0` to silence it if needed.
+
+To bypass any alias, prefix with `command ` or use the absolute binary path.
+{{ if stat (joinPath .chezmoi.homeDir "dev/my-ai") }}
+# SuperClaude / Agent OS framework (this machine only)
+
+Loaded only where `~/dev/my-ai` exists. Interim until the framework migration
+(Phase 2) renders these from dotfiles; broken/missing imports have been pruned.
+
+@~/dev/my-ai/PRINCIPLES.md
+@~/dev/my-ai/RULES.md
+@~/dev/my-ai/ORCHESTRATOR.md
+@~/dev/my-ai/standards/best-practices.md
+@~/dev/my-ai/standards/code-style.md
+@~/dev/my-ai/standards/tech-stack.md
+{{ end }}

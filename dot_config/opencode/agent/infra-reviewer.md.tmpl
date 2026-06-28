@@ -1,0 +1,8 @@
+---
+description: Use to review infrastructure diffs read-only — Terraform plans, Kubernetes/Helm/Kustomize changes, pipeline edits, Ansible/Nix changes. Reports blast radius, drift, security posture, environment parity, and rollback safety. Does not edit.
+mode: subagent
+tools:
+  write: false
+  edit: false
+---
+{{ template "agents/infra-reviewer.md" . }}

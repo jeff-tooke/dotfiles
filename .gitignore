@@ -1,0 +1,16 @@
+# Hard guard for the public dotfiles repo: keep secrets/private config out of
+# `git add -A` (used by `dfp` / df_push). Patterns match chezmoi SOURCE names.
+# File-specific so the managed agents (dot_claude/agents, dot_config/opencode/agent)
+# are never excluded.
+
+# Claude Code runtime config (tokens, history, caches)
+dot_claude/*settings*.json
+dot_claude/*credentials*
+dot_claude/private_*settings*
+dot_claude/history.jsonl
+dot_claude/*superclaude-metadata*
+dot_claude/mcp-needs-auth-cache.json
+
+# OpenCode config (internal URLs / provider auth)
+dot_config/opencode/opencode.json
+dot_config/opencode/*auth*
