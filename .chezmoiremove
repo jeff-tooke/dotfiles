@@ -1,0 +1,8 @@
+# Remove discarded OpenCode agents superseded by the shared agent set.
+# chezmoi deletes these target paths on `apply`/`update` across all machines.
+.config/opencode/agent/backend.md
+.config/opencode/agent/devops.md
+.config/opencode/agent/devops-pipeline-optimizer.md
+.config/opencode/agent/frontend.md
+.config/opencode/agent/performance.md
+.config/opencode/agent/qa.md
