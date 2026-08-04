@@ -42,9 +42,11 @@ error_symbol = "[❯](bold red)"
 vicmd_symbol = "[❮](bold purple)"
 
 [directory]
-disabled = true
 style = "blue"
 format = "[$path]($style) "
+truncation_length = 4
+truncate_to_repo = false
+truncation_symbol = ".../"
 
 [git_branch]
 symbol = " "
