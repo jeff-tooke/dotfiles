@@ -5,7 +5,7 @@ brew=(
   label=?
   padding_right=10
   script="$PLUGIN_DIR/brew.sh"
-  update_freq=3600
+  update_freq=300
 )
 
 sketchybar  --add item brew right   \

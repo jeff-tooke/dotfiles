@@ -1,63 +1,50 @@
-# ---- Starship prompt ----
-eval "$(starship init zsh)"
+    # ---- Starship prompt ----
+    eval "$(starship init zsh)"
 
-# ---- Enable zsh completions early ----
-zmodload zsh/complist
-autoload -Uz compinit
-compinit -i
+    # ---- Enable zsh completions early ----
+    zmodload zsh/complist
+    autoload -Uz compinit
+    compinit -i
 
-# ---- Auto-launch tmux silently if not already inside ----
-if [[ -z "$TMUX" ]]; then
-  if tmux attach; then
-    exec tmux attach
-  else
-    tmux new-session -A -s new #>/dev/null 2>&1
-  fi
-fi
+    # ---- Basic exports and setup ----
+    export VISUAL=nvim
+    export EDITOR=nvim
+    {{- if eq .chezmoi.os "darwin" }}
+    export HOMEBREW_NO_ENV_HINTS=1
+    eval "$(direnv hook zsh)"
+    {{- end }}
 
-# ---- Only run the rest of shell config inside tmux ----
-if [ -n "$TMUX" ]; then
-  # ---- Basic exports and setup ----
-  export VISUAL=nvim
-  export EDITOR=nvim
-{{- if eq .chezmoi.os "darwin" }}
-  export HOMEBREW_NO_ENV_HINTS=1
-  eval "$(direnv hook zsh)"
-{{- end }}
+    # ---- Source plugins and theme ----
+    {{- if eq .chezmoi.os "darwin" }}
+    [[ -f {{ template "brew_prefix" . }}/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && \
+      source {{ template "brew_prefix" . }}/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+    [[ -f {{ template "brew_prefix" . }}/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && \
+      source {{ template "brew_prefix" . }}/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+    {{- else }}
+    [[ -f /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && \
+      source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+    [[ -f /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && \
+      source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+    {{- end }}
 
-# ---- Source plugins and theme ----
-{{- if eq .chezmoi.os "darwin" }}
-  [[ -f {{ template "brew_prefix" . }}/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && \
-    source {{ template "brew_prefix" . }}/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-  [[ -f {{ template "brew_prefix" . }}/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && \
-    source {{ template "brew_prefix" . }}/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-{{- else }}
-  [[ -f /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && \
-    source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-  [[ -f /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && \
-    source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-{{- end }}
+    # Load modular Zsh files if they exist
+    ZSH_CONFIG_DIR="$HOME/.config/zsh"
+    [[ -f "$ZSH_CONFIG_DIR/aliases.zsh" ]] && source "$ZSH_CONFIG_DIR/aliases.zsh"
+    [[ -f "$ZSH_CONFIG_DIR/git.zsh" ]] && source "$ZSH_CONFIG_DIR/git.zsh"
+    [[ -f "$ZSH_CONFIG_DIR/history.zsh" ]] && source "$ZSH_CONFIG_DIR/history.zsh"
+    [[ -f "$ZSH_CONFIG_DIR/dotfiles.zsh" ]] && source "$ZSH_CONFIG_DIR/dotfiles.zsh"
 
-  # Load modular Zsh files if they exist
-  ZSH_CONFIG_DIR="$HOME/.config/zsh"
-  [[ -f "$ZSH_CONFIG_DIR/aliases.zsh" ]] && source "$ZSH_CONFIG_DIR/aliases.zsh"
-  [[ -f "$ZSH_CONFIG_DIR/git.zsh" ]] && source "$ZSH_CONFIG_DIR/git.zsh"
-  [[ -f "$ZSH_CONFIG_DIR/history.zsh" ]] && source "$ZSH_CONFIG_DIR/history.zsh"
-  [[ -f "$ZSH_CONFIG_DIR/dotfiles.zsh" ]] && source "$ZSH_CONFIG_DIR/dotfiles.zsh"
+    # ---- FZF ----
+    eval "$(fzf --zsh)"
+    export FZF_DEFAULT_COMMAND="fd --hidden --strip-cwd-prefix --exclude .git"
+    export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+    export FZF_DEFAULT_OPTS="--bind 'enter:execute($EDITOR {} > /dev/tty)'"
 
-  # ---- FZF ----
-  eval "$(fzf --zsh)"
-  export FZF_DEFAULT_COMMAND="fd --hidden --strip-cwd-prefix --exclude .git"
-  export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-  export FZF_DEFAULT_OPTS="--bind 'enter:execute($EDITOR {} > /dev/tty)'"
+    ff() {
+      local search_term="$1"
+      local search_dir="${2:-.}"
+      fd "$search_term" --type f "$search_dir" | fzf --preview 'bat --style=numbers --color=always {} | less -R' --preview-window=right:50%
+    }
 
-  ff() {
-    local search_term="$1"
-    local search_dir="${2:-.}"
-    fd "$search_term" --type f "$search_dir" | fzf --preview 'bat --style=numbers --color=always {} | less -R' --preview-window=right:50%
-  }
-
-  # ---- Zoxide ----
-  eval "$(zoxide init zsh --cmd cd)"
-
-fi
+    # ---- Zoxide ----
+    eval "$(zoxide init zsh --cmd cd)"
