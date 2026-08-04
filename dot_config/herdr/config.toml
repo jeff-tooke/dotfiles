@@ -1,7 +1,0 @@
-onboarding = false
-[keys]
-prefix = "ctrl+a"
-goto = "prefix+g"
-new_tab = "prefix+c"
-split_horizontal = "prefix+minus"
-split_vertical = "prefix+backslash"
