@@ -55,10 +55,17 @@ export RBW_PROFILE="work"
 
 # ---- Interactive fuzzy search -> copy password on Enter ----
 pwf() {
-  local item
+  local item err_msg
 
-  # Check if rbw can decrypt; if not restart agent and re-unlock
-  if rbw list >/dev/null 2&1;then
+  err_msg=$(rbw list 2>&1 1>/dev/null)
+
+  if [ $? -ne 0 ]; then
+    if [[ "$err_msg" == *"failed to find decryption keys"* ]]; then
+      echo "rbw agent lost decyption keys. Recovering ..."
+    else
+      echo "rbw agent locked or unreachable. Unlocking ..."
+    fi
+
     rbw stop 2>/dev/null
     rbw unlock || return 1
   fi
