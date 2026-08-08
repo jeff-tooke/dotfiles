@@ -46,5 +46,30 @@
       fd "$search_term" --type f "$search_dir" | fzf --preview 'bat --style=numbers --color=always {} | less -R' --preview-window=right:50%
     }
 
+# ---- rbw ----
+{{- if eq .hostname "macbook-pro" }}
+export RBW_PROFILE="personal"
+{{- else if eq .hostname "GB-TJ6RM9144P" }}
+export RBW_PROFILE="work"
+{{- end }}
+
+# ---- Interactive fuzzy search -> copy password on Enter ----
+pwf() {
+  local item
+
+  # Check if rbw can decrypt; if not restart agent and re-unlock
+  if rbw list >/dev/null 2&1;then
+    rbw stop 2>/dev/null
+    rbw unlock || return 1
+  fi
+
+  # Pass --bind 'enter:accept' to override the global $EDITOR binding
+  item=$(rbw list | fzf --prompt="Select secret > " --bind "enter:accept")
+
+  if [ -n "$item" ]; then
+    rbw get --clipboard "$item"
+  fi
+}
+
     # ---- Zoxide ----
     eval "$(zoxide init zsh --cmd cd)"
