@@ -55,28 +55,37 @@ export RBW_PROFILE="work"
 
 # ---- Interactive fuzzy search -> copy password on Enter ----
 pwf() {
-  local item err_msg
+    local item err_msg
 
-  err_msg=$(rbw list 2>&1 1>/dev/null)
+    if ! err_msg=$(rbw list 2>&1 >/dev/null); then
+        if [[ "$err_msg" == *"failed to find decryption keys"* ]]; then
+            echo "rbw agent lost decryption keys. Restarting..."
+        else
+            echo "rbw agent locked or unreachable. Unlocking..."
+        fi
 
-  if [ $? -ne 0 ]; then
-    if [[ "$err_msg" == *"failed to find decryption keys"* ]]; then
-      echo "rbw agent lost decyption keys. Recovering ..."
-    else
-      echo "rbw agent locked or unreachable. Unlocking ..."
+        rbw stop 2>/dev/null
+
+        if ! rbw unlock; then
+            echo "rbw unlock failed. Returning to shell."
+            return 1
+        fi
+
+        if ! rbw unlocked >/dev/null 2>&1; then
+            echo "rbw agent is still locked. Returning to shell."
+            return 1
+        fi
     fi
 
-    rbw stop 2>/dev/null
-    rbw unlock || return 1
-  fi
+    item=$(rbw list | fzf \
+        --prompt="Select secret > " \
+        --bind "enter:accept")
 
-  # Pass --bind 'enter:accept' to override the global $EDITOR binding
-  item=$(rbw list | fzf --prompt="Select secret > " --bind "enter:accept")
-
-  if [ -n "$item" ]; then
-    rbw get --clipboard "$item"
-  fi
+    if [[ -n "$item" ]]; then
+        rbw get --clipboard "$item"
+    fi
 }
+
 
     # ---- Zoxide ----
     eval "$(zoxide init zsh --cmd cd)"
