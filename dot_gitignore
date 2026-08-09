@@ -36,3 +36,6 @@ result-*
 .sops.yml
 keys.txt
 
+### AI Tools ###
+/AGENTS.md
+/docs/agents/
