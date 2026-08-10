@@ -151,7 +151,6 @@ export default async function (pi: ExtensionAPI) {
 			`[omniroute] No models returned by ${baseUrl}/models. ` +
 			`Provider registered with fallback models.`
 		);
-	} else {
-		console.log(`[omniroute] Discovered ${models.length} model(s) from ${baseUrl}`);
 	}
+	// No output on success
 }

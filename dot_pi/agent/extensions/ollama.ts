@@ -143,7 +143,6 @@ export default async function (pi: ExtensionAPI) {
 			`[ollama] No models returned by ${baseUrl}/models. ` +
 			`Provider registered with fallback models.`
 		);
-	} else {
-		console.log(`[ollama] Discovered ${models.length} model(s) from ${baseUrl}`);
 	}
+	// No output on success
 }
