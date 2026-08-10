@@ -17,7 +17,7 @@ set -euo pipefail
 SECRET_HELPER="${HOME}/.local/bin/get-secret.sh"
 
 # Non-secret provider configuration.
-OLLAMA_BASE_URL="http://localhost:11434"
+OLLAMA_BASE_URL="http://localhost:11434/v1"
 OMNIROUTE_BASE_URL="https://omniroute.<domain-name>.com"
 
 # Bitwarden item names as understood by get_secret.sh.
